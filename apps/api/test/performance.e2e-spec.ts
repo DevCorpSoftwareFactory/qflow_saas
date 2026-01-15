@@ -138,7 +138,6 @@ describe('Performance Tests', () => {
             const delayBetweenRequests = (testDurationSeconds * 1000) / totalRequests;
 
             const results: TimingResult[] = [];
-            const startTime = Date.now();
 
             for (let i = 0; i < totalRequests; i++) {
                 const reqStart = Date.now();

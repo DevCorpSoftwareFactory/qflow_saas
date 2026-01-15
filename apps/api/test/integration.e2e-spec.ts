@@ -35,6 +35,7 @@ describe('Integration E2E Tests', () => {
   const salesEmail = `sales-integ-${uniqueSuffix}@test.com`;
 
   function getTestServer(app: INestApplication) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return request(app.getHttpServer());
   }
 

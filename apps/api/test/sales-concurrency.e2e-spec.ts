@@ -252,8 +252,6 @@ describe('SalesService Concurrency Tests', () => {
 
     describe('Pessimistic Locking Verification', () => {
         it('should hold lock during transaction', async () => {
-            const startTime = Date.now();
-
             await Promise.all([
                 createSaleRequest(testVariantId, 1),
                 createSaleRequest(testVariantId, 1),
