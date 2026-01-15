@@ -12,7 +12,6 @@ import { AuthService } from './auth.service';
 import {
     RegisterDto,
     LoginDto,
-    MfaSetupDto,
     MfaVerifyDto,
     LoginResponse,
 } from './dto/auth.dto';

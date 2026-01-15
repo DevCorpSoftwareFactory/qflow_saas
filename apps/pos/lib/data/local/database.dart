@@ -81,7 +81,7 @@ class LocalSales extends Table {
   RealColumn get totalAmount => real().withDefault(const Constant(0))();
   
   // Strict Enum
-  TextColumn get status => textEnum<SaleStatus>().withDefault(const Constant('completed'))();
+  TextColumn get status => textEnum<SaleStatus>().withDefault(const Constant('draft'))();
   TextColumn get saleType => textEnum<SaleType>().withDefault(const Constant('retail'))();
   
   TextColumn get cashierId => text()();

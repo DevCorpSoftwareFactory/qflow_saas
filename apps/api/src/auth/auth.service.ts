@@ -8,7 +8,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User, Role, Tenant } from '@qflow/database';
+import { User, Role } from '@qflow/database';
 import * as bcrypt from 'bcrypt';
 import { authenticator } from 'otplib';
 import * as QRCode from 'qrcode';
@@ -176,7 +176,9 @@ export class AuthService {
 
     async logout(userId: string): Promise<{ success: boolean }> {
         await this.userRepository.update(userId, {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
             sessionToken: null as any,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
             sessionExpiresAt: null as any,
         });
         return { success: true };

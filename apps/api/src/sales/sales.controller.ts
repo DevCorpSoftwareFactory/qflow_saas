@@ -22,7 +22,9 @@ export class SalesController {
     @Body() dto: CreateSaleDto,
     @Req() req: any,
   ): Promise<SaleResponseDto> {
-    const tenantId = req.user.tenantId;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const tenantId = req.user.tenantId as string;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     console.log('[CreateSale] User:', req.user);
     console.log('[CreateSale] TenantID:', tenantId);
     console.log('[CreateSale] DTO:', JSON.stringify(dto));

@@ -32,9 +32,7 @@ describe('Integration E2E Tests', () => {
   // Unique data to avoid collisions
   const uniqueSuffix = Date.now();
   const adminEmail = `admin-integ-${uniqueSuffix}@test.com`;
-  const adminPass = 'SecureAdminPass123!';
   const salesEmail = `sales-integ-${uniqueSuffix}@test.com`;
-  const salesPass = 'SecureSalesPass123!';
 
   function getTestServer(app: INestApplication) {
     return request(app.getHttpServer());

@@ -71,6 +71,9 @@ jobs:
           flutter-version: "3.x"
           cache: true
 
+      - name: Install Linux Dependencies
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+
       - name: Install dependencies
         run: flutter pub get
 
