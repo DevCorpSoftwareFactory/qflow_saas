@@ -118,7 +118,7 @@ class $LocalSalesTable extends LocalSales
         false,
         type: DriftSqlType.string,
         requiredDuringInsert: false,
-        defaultValue: const Constant('completed'),
+        defaultValue: const Constant('draft'),
       ).withConverter<SaleStatus>($LocalSalesTable.$converterstatus);
   @override
   late final GeneratedColumnWithTypeConverter<SaleType, String> saleType =
