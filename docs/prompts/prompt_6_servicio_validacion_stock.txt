@@ -1,0 +1,461 @@
+# PROPUESTA TÉCNICA: SERVICIO DE VALIDACIÓN DE STOCK (REGLA INMUTABLE)
+
+## 1. CONTEXTO DEL PROYECTO
+
+QFlow Pro es un sistema ERP SaaS multi-tenant diseñado para negocios alimentarios en Colombia. El sistema opera en tres plataformas diferenciadas que comparten la misma base de datos PostgreSQL mediante Row Level Security (RLS). Una de las reglas de negocio más críticas del sistema es la **regla inmutable de disponibilidad de stock**: **nunca se debe permitir la venta de un producto que no existe en inventario**.
+
+Esta regla debe implementarse como un servicio centralizado que se ejecute antes de cualquier transacción que afecte el inventario, tanto en el backend como en el portal web y la aplicación móvil.
+
+---
+
+## 2. OBJETIVO DEL SERVICIO
+
+Crear un **StockService** que impida vender productos que no tienen inventario disponible, antes de que la transacción llegue a la base de datos. Este servicio debe ser:
+
+- **Centralizado**: Una única fuente de verdad para la lógica de validación
+- **Consistente**: Mismo comportamiento en las tres plataformas
+- **Inmutable**: No puede haber excepciones a esta regla bajo ninguna circunstancia
+- **Rápido**: Consultas optimizadas para no afectar el rendimiento del punto de venta
+
+### 2.1 Regla de Negocio Inmutable
+
+La regla fundamental que nunca debe violarse es:
+
+> **"Si cantidad_disponible < cantidad_requerida, el proceso debe detenerse inmediatamente con una excepción de negocio."**
+
+Esta regla aplica a:
+- Registros de venta en el POS
+- Procesamiento de pedidos desde el portal de clientes
+- Cualquier operación que disminuya el inventario
+- Movimientos de salida de mercancía
+
+---
+
+## 3. ESPECIFICACIÓN DEL SERVICIO
+
+### 3.1 Definición del Método Principal
+
+El servicio debe implementar un método asíncrono de verificación de disponibilidad con la siguiente firma:
+
+```
+verificarDisponibilidad(
+  varianteId: string,
+  almacenId: string,
+  cantidadRequerida: number
+): Promise<boolean>
+```
+
+### 3.2 Parámetros de Entrada
+
+| Parámetro | Tipo | Descripción |
+|-----------|------|-------------|
+| `varianteId` | string | UUID de la variante del producto a verificar |
+| `almacenId` | string | UUID del almacén donde se debe verificar el stock |
+| `cantidadRequerida` | number | Cantidad de unidades que se desean vender |
+
+### 3.3 Valor de Retorno
+
+| Caso | Retorno | Acción Siguiente |
+|------|---------|------------------|
+| Stock disponible y suficiente | `true` | Continuar con la transacción |
+| Producto es un servicio | `true` | Omitir validación, continuar |
+| Stock insuficiente | **Excepción** | Detener proceso inmediatamente |
+
+### 3.4 Excepción de Negocio
+
+Cuando el stock sea insuficiente, el servicio debe lanzar una excepción personalizada con información detallada:
+
+- **Nombre**: `StockInsuficienteException`
+- **Mensaje**: Descripción clara del error con información de contexto
+- **Datos Adjuntos**: Stock actual, cantidad solicitada, datos del producto
+
+---
+
+## 4. LÓGICA DE NEGOCIO DETALLADA
+
+### 4.1 Flujo de Verificación
+
+```
+INICIO verificarDisponibilidad(varianteId, almacenId, cantidadRequerida)
+
+    1. Consultar la variante del producto
+       ↓
+    2. ¿La variante es de tipo "servicio"?
+       ├─ SÍ → Retornar TRUE (omitir validación)
+       └─ NO → Continuar con paso 3
+       ↓
+    3. Consultar existencias en el almacén especificado
+       ↓
+    4. ¿Existen registros de existencias?
+       ├─ NO → Retornar FALSE (no hay stock)
+       └─ SÍ → Continuar con paso 5
+       ↓
+    5. ¿cantidad_disponible >= cantidadRequerida?
+       ├─ SÍ → Retornar TRUE
+       └─ NO → Lanzar StockInsuficienteException
+       ↓
+    FIN
+```
+
+### 4.2 Consulta de Existencias
+
+La consulta debe obtener el registro de existencias que relacione:
+- La variante del producto especificada
+- El almacén donde se verificará el stock
+- El tenant del usuario autenticado (para multi-tenancy)
+
+La consulta debe retornar únicamente el campo `cantidad_disponible`, no toda la entidad, para optimizar el rendimiento.
+
+### 4.3 Caso Especial: Productos de Tipo Servicio
+
+Los servicios no tienen inventario físico, por lo que la validación debe omitirse automáticamente. Para identificar si una variante es de tipo servicio, se debe consultar la entidad Producto (o la entidad que contenga esta información) y verificar el tipo.
+
+Si el producto es de tipo "servicio":
+- No consultar existencias
+- No lanzar excepción aunque no haya registro
+- Retornar `true` inmediatamente
+- Continuar con el proceso de venta
+
+### 4.4 Manejo de Excepciones
+
+Cuando se detecta stock insuficiente, la excepción debe incluir:
+
+1. **Código de error**: Identificador técnico del error
+2. **Mensaje legible**: Descripción en lenguaje natural
+3. **Datos de contexto**:
+   - Nombre del producto
+   - Código del producto
+   - Stock actual disponible
+   - Cantidad requerida
+   - Stock que faltaría
+   - Almacén consultado
+
+Esta información debe permitir al usuario entender exactamente qué pasó y qué hacer para resolverlo.
+
+---
+
+## 5. IMPLEMENTACIÓN POR PLATAFORMA
+
+### 5.1 Backend (NestJS + TypeORM)
+
+#### Ubicación del Servicio
+El servicio debe crearse en el módulo de inventario o en un módulo compartido de negocio. La ubicación sugerida es:
+
+```
+src/
+  modules/
+    inventory/
+      stock/
+        stock.service.ts
+        stock.module.ts
+        exceptions/
+          stock-insuficiente.exception.ts
+```
+
+#### Responsabilidades del Servicio en Backend
+
+El servicio en el backend es la **fuente primaria de verdad**. Todas las transacciones que lleguen al backend deben pasar por esta validación, incluyendo:
+
+- Ventas procesadas desde el POS web
+- Pedidos confirmados desde el portal de clientes
+- Movimientos de inventario que disminuyan stock
+- Cualquier operación que afecte existencias
+
+El servicio debe ser inyectable y reutilizable en cualquier controlador o guard que lo necesite.
+
+#### Manejo de Concurrencia
+
+El backend debe considerar escenarios de concurrencia:
+- Dos usuarios venden el mismo producto simultáneamente
+- El stock disponible cambia entre la verificación y el guardado
+
+Se recomienda usar **transacciones de base de datos** con nivel de aislamiento `SERIALIZABLE` o usar **bloqueo pesimista** en las consultas de existencias para prevenir condiciones de carrera.
+
+#### Optimización de Rendimiento
+
+Para garantizar que la verificación no afecte el rendimiento del POS:
+- Crear índices en las columnas de búsqueda (tenant_id, variante_id, almacen_id)
+- Usar cacheo Redis para consultes frecuentes
+- Mantener conexiones de base de datos activas (connection pooling)
+- Considerar stored procedures para la validación completa
+
+---
+
+### 5.2 Portal Web (Next.js + API Calls)
+
+#### Ubicación del Servicio
+
+El servicio de validación desde el frontend puede implementarse de dos formas:
+
+1. **Servicio de dominio compartido**: TypeScript puro que se importa en el portal
+2. **Llamada al backend**: API call al servicio de backend
+
+Se recomienda usar la **llamada al backend** para garantizar que la validación sea la misma fuente de verdad, pero con una capa de validación local como fallback para mejorar la experiencia de usuario.
+
+#### Implementación Sugerida
+
+```
+src/
+  domain/
+    services/
+      stock-validation.service.ts  # Lógica de validación
+  hooks/
+    useStockValidation.ts          # React hook para componentes
+  components/
+    StockAlert.tsx                 # Componente de alerta visual
+```
+
+#### Validación en Tiempo Real
+
+El portal web debe mostrar validación en tiempo real mientras el usuario selecciona productos:
+- Mientras el usuario agrega items al carrito, validar disponibilidad
+- Mostrar alerta visual cuando un producto esté cerca del límite
+- No permitir confirmar la venta si algún producto no tiene stock
+- Actualizar disponibilidad después de cada cambio en el carrito
+
+#### Experiencia de Usuario
+
+Cuando se lance la excepción de stock insuficiente:
+- Mostrar modal o toast con el mensaje de error
+- Resaltar el producto problemático en el carrito
+- Ofrecer alternativas (producto similar, esperar reposición)
+- No cerrar el modal hasta que el usuario acknowledge el error
+
+---
+
+### 5.3 App Móvil (Flutter + Hive + Sincronización)
+
+#### Ubicacion del Servicio
+
+```
+lib/
+  domain/
+    services/
+      stock_validation_service.dart
+  data/
+    repositories/
+      stock_repository_impl.dart
+  models/
+    stock_exceptions.dart
+  utils/
+    stock_cache_manager.dart
+```
+
+#### Validación Offline
+
+La app móvil opera frecuentemente sin conexión a internet, por lo que debe manejar dos escenarios:
+
+**Cuando hay conexión:**
+- Consultar disponibilidad en tiempo real al backend
+- Si el backend responde con excepción, bloquear la venta
+- Si la validación pasa, proceder con la transacción
+
+**Cuando NO hay conexión:**
+- Consultar el caché local de existencias en Hive
+- La validación usa datos potencialmente desactualizados
+- Si la validación offline pasa, encolar la transacción
+- Al sincronizar, si el stock cambió, rechazar la transacción
+- Notificar al usuario explicando qué pasó
+
+#### Cola de Transacciones Pendientes
+
+Cuando la validación offline pasa pero la transacción está pendiente de sincronización:
+
+1. Guardar la transacción en cola de sincronización (Hive)
+2. Marcar la transacción como "pendiente de confirmación"
+3. Cuando se recupere conexión, procesar la cola
+4. Si al procesar el backend rechaza por falta de stock:
+   - Cambiar estado a "rechazada por stock"
+   - Notificar al usuario con explicación
+   - Ofrecer alternativas
+
+#### Cacheo de Existencias
+
+La app debe mantener un caché local de existencias actualizado:
+- Sincronizar existencias al iniciar sesión
+- Actualizar existencias después de cada venta exitosa
+- Invalidar caché después de un tiempo configurable (ej: 5 minutos)
+- Usar el caché solo como referencia, el backend es la fuente de verdad
+
+#### Manejo de Excepciones en Flutter
+
+Cuando se detecte stock insuficiente:
+- Mostrar SnackBar con el mensaje de error
+- Navegar a una pantalla de alternativas si existe
+- Permitir al usuario eliminar el producto del carrito
+- No permitir avanzar hasta resolver el conflicto
+
+---
+
+## 6. EXCEPCIONES ESPECIALES Y CASOS BORDE
+
+### 6.1 Productos Sin Registro de Existencias
+
+Si un producto no tiene ningún registro en la tabla de existencias:
+- Tratar como si tuviera stock cero
+- Lanzar excepción de stock insuficiente
+- No permitir la venta
+
+### 6.2 Existencias en Múltiples Almacenes
+
+Si el sistema permite validar disponibilidad en múltiples almacenes:
+- Definir estrategia de búsqueda (orden de prioridad)
+- Buscar en el almacén principal primero
+- Si no hay suficiente, buscar en almacenes secundarios
+- Si la suma de todos es suficiente, permitir la venta
+- Registrar de qué almacenes se tomará el producto
+
+### 6.3 Productos con Lotes
+
+Si el producto usa control de lotes (FIFO):
+- Validar disponibilidad por lote específico si se especifica
+- Si no se especifica lote, buscar el lote más antiguo con stock
+- Si el lote más antiguo no tiene suficiente, buscar el siguiente
+- Mostrar información del lote en el mensaje de error
+
+### 6.4 Productos con Fecha de Vencimiento
+
+Si el producto tiene fecha de vencimiento:
+- No permitir vender productos vencidos
+- Excluir lotes vencidos de la consulta de disponibilidad
+- Si todos los lotes están vencidos, informar al usuario
+- Alertar sobre productos próximos a vencer
+
+### 6.5 Reservas de Stock
+
+Si existe un sistema de reservas:
+- Considerar stock reservado en la verificación
+- El stock disponible ya debería incluir las reservas
+- Si no es así, ajustar la consulta para restar reservas
+- No permitir sobre-reservar un producto
+
+---
+
+## 7. INTEGRACIÓN CON OTROS SERVICIOS
+
+### 7.1 Integración con Servicio de Ventas
+
+El servicio de validación de stock debe integrarse con el servicio de ventas:
+
+```
+VentaController → VentaService → StockService.verificarDisponibilidad()
+                                            ↓
+                                     ¿Stock suficiente?
+                                            ↓
+                    SÍ ↓                              ↓ NO
+           Continuar proceso            StockInsuficienteException
+           de venta                     → Mostrar error al usuario
+```
+
+### 7.2 Integración con Servicio de Pedidos
+
+Los pedidos del portal de clientes deben pasar por la misma validación:
+
+```
+PedidoService.procesarPedido()
+  Para cada ítem:
+    StockService.verificarDisponibilidad()
+    Si falla → Rechazar ítem o todo el pedido
+```
+
+### 7.3 Integración con Servicio de Inventario
+
+Los movimientos de inventario que afectan el stock deben coordinar:
+
+```
+MovimientoService.registrarSalida()
+  StockService.verificarDisponibilidad()
+  Si pasa → Registrar movimiento
+            → Actualizar existencias
+```
+
+---
+
+## 8. MONITOREO Y ALERTAS
+
+### 8.1 Métricas a Registrar
+
+El servicio debe registrar métricas para monitoreo:
+
+| Métrica | Descripción | Umbral de Alerta |
+|---------|-------------|------------------|
+| Tiempo de respuesta | Ms promedio de verificación | > 100ms |
+| Tasa de rechazos | % de ventas rechazadas por stock | > 5% |
+| Productos críticos | Productos con stock < mínimo | Lista diaria |
+| Errores de validación | Veces que se lanza excepción | Por producto |
+
+### 8.2 Alertas Automáticas
+
+Configurar alertas automáticas cuando:
+- Un producto llegue a stock cero
+- Un producto esté bajo el mínimo por más de 24 horas
+- La tasa de rechazos supere el umbral
+- Hayan productos sin registro de existencias
+
+---
+
+## 9. PRUEBAS REQUERIDAS
+
+### 9.1 Pruebas Unitarias
+
+- Verificar que retorne true cuando hay stock suficiente
+- Verificar que lance excepción cuando no hay stock
+- Verificar que omita validación para servicios
+- Verificar que funcione con cantidades exactas
+- Verificar manejo de productos sin existencias
+
+### 9.2 Pruebas de Integración
+
+- Verificar que la consulta de existencias sea rápida
+- Verificar manejo de concurrencia
+- Verificar que las transacciones fallen correctamente
+- Verificar sincronización con el caché local (Flutter)
+
+### 9.3 Pruebas de Rendimiento
+
+- Cargar de 1000+ productos en el caché
+- Medir tiempo de verificación con datos reales
+- Simular múltiples ventas concurrentes
+- Verificar degradación gradual bajo carga
+
+---
+
+## 10. DOCUMENTACIÓN DE API
+
+### 10.1 Endpoint del Servicio (Backend)
+
+Si se expone como endpoint HTTP:
+
+```
+POST /api/v1/stock/verify
+Body: {
+  "varianteId": "uuid",
+  "almacenId": "uuid",
+  "cantidadRequerida": number
+}
+Response (200): { "disponible": true }
+Response (400): {
+  "error": "STOCK_INSUFICIENTE",
+  "mensaje": "No hay suficiente stock...",
+  "detalles": { ... }
+}
+```
+
+### 10.2 Documentación OpenAPI
+
+Documentar el servicio con OpenAPI/Swagger para facilitar el consumo desde el portal web y app móvil.
+
+---
+
+## 11. CONCLUSIONES
+
+El StockService es una de las reglas de negocio más críticas del sistema QFlow Pro. Su implementación debe ser robusta, consistente entre plataformas y a prueba de fallos.
+
+La regla inmutable "nunca vender lo que no existe" debe cumplirse sin excepciones, proporcionando mensajes claros y accionables cuando no se pueda completar una operación.
+
+La implementación debe considerar los tres escenarios de plataforma:
+- **Backend**: Fuente de verdad, manejo de concurrencia, transacciones
+- **Portal Web**: Experiencia de usuario, validación en tiempo real
+- **App Móvil**: Validación offline, sincronización, manejo de conflictos
+
+Este documento sirve como guía para implementar el servicio en las tres plataformas de manera consistente y alineada con los requisitos del negocio.

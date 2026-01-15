@@ -1,0 +1,52 @@
+[
+  {
+    "id": "TC001",
+    "title": "register a new user with valid data",
+    "description": "Test the /auth/register endpoint to ensure a new user can be registered successfully with valid email, password, fullName, tenantId, and roleId. Verify that the response status is 201 and the user is created."
+  },
+  {
+    "id": "TC002",
+    "title": "handle duplicate user registration",
+    "description": "Test the /auth/register endpoint with an email that already exists in the system to verify that the API returns a 409 conflict response indicating the user already exists."
+  },
+  {
+    "id": "TC003",
+    "title": "login user with correct credentials",
+    "description": "Test the /auth/login endpoint by providing valid email and password to verify that the user is authenticated successfully and a JWT accessToken is returned with a 200 status."
+  },
+  {
+    "id": "TC004",
+    "title": "reject login with invalid credentials",
+    "description": "Test the /auth/login endpoint with incorrect email or password to ensure the API returns a 401 unauthorized response."
+  },
+  {
+    "id": "TC005",
+    "title": "logout authenticated user successfully",
+    "description": "Test the /auth/logout endpoint with a valid bearer token to verify that the user session is invalidated and a 200 status is returned confirming successful logout."
+  },
+  {
+    "id": "TC006",
+    "title": "reject logout without authentication",
+    "description": "Test the /auth/logout endpoint without providing a valid bearer token to ensure the API returns a 401 unauthorized response."
+  },
+  {
+    "id": "TC007",
+    "title": "setup mfa for authenticated user",
+    "description": "Test the /auth/mfa/setup endpoint with a valid bearer token to verify that the API returns a QR code URL and secret for two-factor authentication setup with a 200 status."
+  },
+  {
+    "id": "TC008",
+    "title": "reject mfa setup without authentication",
+    "description": "Test the /auth/mfa/setup endpoint without a valid bearer token to ensure the API returns a 401 unauthorized response."
+  },
+  {
+    "id": "TC009",
+    "title": "check stock availability with sufficient stock",
+    "description": "Test the /inventory/check-availability endpoint by providing a valid variantId, branchId, and quantity that is available in stock. Verify the API returns a 200 status with availability confirmed."
+  },
+  {
+    "id": "TC010",
+    "title": "create sale with valid data and sufficient stock",
+    "description": "Test the /sales POST endpoint by submitting a valid sale request including branchId, cashierId, paymentMethod, and items with sufficient stock. Verify the sale is created successfully with a 201 response."
+  }
+]

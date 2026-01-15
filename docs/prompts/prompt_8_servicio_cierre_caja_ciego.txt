@@ -1,0 +1,533 @@
+# PROPUESTA TÉCNICA: SERVICIO DE CIERRE DE CAJA CIEGO (SEGURIDAD)
+
+## 1. CONTEXTO DEL PROYECTO
+
+QFlow Pro es un sistema ERP SaaS multi-tenant diseñado para negocios alimentarios en Colombia. Una de las características de seguridad más importantes del sistema es el **cierre de caja ciego**, un mecanismo diseñado para prevenir fraudes por parte de los cajeros. El principio fundamental es simple pero efectivo: **el cajero no debe conocer el monto teórico que el sistema espera**, solo declara lo que tiene en caja y el sistema compara internamente.
+
+---
+
+## 2. OBJETIVO DEL SERVICIO DE CAJA
+
+Crear un servicio centralizado que implemente la lógica de cierre de caja ciego, garantizando que:
+- El cajero nunca tenga acceso al monto teórico calculado por el sistema
+- El supervisor pueda verificar y cerrar las sesiones de caja
+- Se detecten faltantes o sobrantes de manera automática
+- Se mantenga un historial completo de cierres para auditoría
+
+### 2.1 Principio de Caja Ciega
+
+El concepto de caja ciega se basa en la separación de roles y responsabilidades:
+
+**El Cajero:**
+- Maneja el efectivo durante su turno
+- Registra todas las transacciones de venta
+- Al final del turno, cuenta el efectivo físico
+- Declara el monto total en mano
+- **NO conoce el monto teórico del sistema**
+
+**El Sistema (interno):**
+- Calcula el monto teórico basado en todas las transacciones
+- Compara lo declarado con lo teórico
+- Determina si hay diferencia
+- Genera el reporte de cierre
+
+**El Supervisor:**
+- Autoriza el cierre de sesión
+- Puede ver el monto teórico para validación
+- Confirma o cuestiona diferencias
+- Firma digitalmente el cierre
+
+### 2.2 Flujo de Trabajo del Cierre de Caja
+
+```
+INICIO Cierre de Caja
+
+    1. Cajero termina su turno
+    2. Cajero cuenta el efectivo físico en caja
+    3. Cajero declara: "Tengo $X en efectivo, $Y en tarjetas"
+    4. Supervisor recibe la declaración
+    5. Sistema calcula internamente el monto teórico
+    6. Sistema compara: Declarado vs Teórico
+    7. Sistema determina estado: Cuadrado, Sobrante o Faltante
+    8. Supervisor confirma el cierre
+    9. Sistema guarda el registro de cierre
+
+FIN
+```
+
+---
+
+## 3. DISEÑO DEL SERVICIO DE CAJA
+
+### 3.1 Métodos Principales del Servicio
+
+El servicio debe implementar dos métodos principales con responsabilidades claramente definidas:
+
+**Método 1: Calcular Monto Teórico (Interno)**
+
+Este método calcula cuánto dinero debería haber en caja según las transacciones registradas. Su uso es exclusivo para roles internos y supervisores.
+
+**Método 2: Cerrar Sesión (Público)**
+
+Este método procesa el cierre de sesión con los montos declarados por el cajero, compara con el teórico y determina el resultado.
+
+### 3.2 Regla de Seguridad Fundamental
+
+**El cajero nunca debe conocer el monto teórico.**
+
+Esta regla se implementa mediante:
+- El método de cálculo es interno y no accesible desde interfaces públicas
+- El DTO de entrada para cerrar sesión NO contiene el monto teórico
+- El monto teórico solo se revela al supervisor durante la confirmación
+- Los logs del sistema no muestran el cálculo a usuarios no autorizados
+
+---
+
+## 4. ESPECIFICACIÓN DEL MÉTODO DE CÁLCULO
+
+### 4.1 Propósito
+
+Calcular el monto teórico que debería existir en caja al momento del cierre, basado en todas las transacciones que ocurrieron durante la sesión.
+
+### 4.2 Definición del Cálculo
+
+La fórmula del monto teórico es:
+
+```
+MontoTeorico = SaldoInicial + IngresosTotales - EgresosTotales
+```
+
+### 4.3 Componentes del Cálculo
+
+**Saldo Inicial:**
+- Es el monto cargado a la caja al inicio de la sesión
+- Se registra cuando el cajero abre su sesión de caja
+- Incluye efectivo y otros medios de pago iniciales
+
+**Ingresos Totales:**
+- Ventas en efectivo realizadas durante la sesión
+- Pagos de clientes en efectivo
+- Otros ingresos registrados (devoluciones a favor del negocio)
+- **No incluye** ventas con tarjeta u otros métodos (se registran por separado)
+
+**Egresos Totales:**
+- Gastos operativos pagados desde caja
+- Pagos a proveedores en efectivo
+- Retiros de dinero por el dueño o encargado
+- Otros egresos registrados
+- **No incluye** transacciones que no pasaron por caja
+
+### 4.4 Accesibilidad del Método
+
+El método de cálculo debe tener las siguientes características:
+
+- **Uso interno**: No debe exponerse como endpoint público
+- **Roles restringidos**: Solo accesible por supervisores, administradores o el sistema mismo
+- **Auditable**: Cada cálculo debe registrarse en logs de auditoría
+- **Protección**: Implementar controles de acceso adicionales si es necesario
+
+### 4.5 Consideraciones de Seguridad
+
+Para proteger la integridad del cálculo:
+
+- El método debe ejecutarse en un contexto autenticado y autorizado
+- Los resultados del cálculo no deben almacenarse en caché accesibles por usuarios
+- Los logs del cálculo deben estar protegidos contra modificación
+- El acceso al método debe registrarse en el historial de auditoría
+
+---
+
+## 5. ESPECIFICACIÓN DEL MÉTODO DE CIERRE
+
+### 5.1 Propósito
+
+Procesar el cierre de una sesión de caja con los montos declarados por el cajero, comparar con el teórico y registrar el resultado.
+
+### 5.2 Flujo del Proceso de Cierre
+
+```
+INICIO cerrarSesion(sesionId, datosCierre, supervisorId)
+
+    1. Validar que la sesión existe y está abierta
+    2. Validar que el supervisor tiene permisos
+    3. Calcular internamente el monto teórico (llamar al método interno)
+    4. Comparar montos declarados vs teórico
+    5. Calcular diferencia
+    6. Determinar estado (Sobrante, Faltante, Cuadrado)
+    7. Actualizar la sesión de caja con toda la información
+    8. Registrar el movimiento de cierre
+    9. Retornar resultado al supervisor
+
+FIN
+```
+
+### 5.3 Datos de Entrada (Declarados por el Cajero)
+
+El cajero debe declarar los siguientes montos al cerrar:
+
+| Campo | Descripción |
+|-------|-------------|
+| Efectivo declarado | Total de dinero en efectivo físico en caja |
+| Tarjeta declarado | Total de ventas con tarjeta realizadas |
+| Otros métodos | Total de otros métodos de pago recibidos |
+| Observaciones | Notas opcionales sobre el cierre |
+
+### 5.4 Datos Internos (Calculados por el Sistema)
+
+El sistema calcula internamente:
+
+| Campo | Descripción |
+|-------|-------------|
+| Efectivo teórico | Efectivo que debería haber según transacciones |
+| Tarjeta teórica | Total de ventas con tarjeta según sistema |
+| Total teórico | Suma de todos los medios de pago teóricos |
+| Diferencia | Declarecio - Teórico |
+| Estado | Sobrante, Faltante o Cuadrado |
+
+### 5.5 Cálculo de Diferencia
+
+```
+Diferencia = TotalDeclarado - TotalTeorico
+```
+
+**Interpretación de la Diferencia:**
+
+- **Diferencia = 0**: La caja está cuadrada, todo está correcto
+- **Diferencia > 0**: Hay un sobrante, el cajero tiene más de lo esperado
+- **Diferencia < 0**: Hay un faltante, falta dinero según el sistema
+
+### 5.6 Estados del Cierre
+
+El sistema debe determinar uno de los siguientes estados:
+
+**CUADRADO:**
+- Diferencia es exactamente cero
+- El cierre se marca como correcto
+- No requiere acciones adicionales
+
+**SOBRANTE:**
+- Diferencia es positiva
+- Indica que hay más dinero del esperado
+- Puede indicar errores de registro o ventas no contabilizadas
+- Debe investigarse pero no es crítico
+
+**FALTANTE:**
+- Diferencia es negativa
+- Indica que falta dinero
+- **Requiere atención inmediata**
+- Puede indicar robo, error o fraude
+- Debe registrarse y investigarse
+
+### 5.7 Actualización de la Sesión de Caja
+
+Al cerrar la sesión, se debe actualizar con:
+
+- Los montos declarados por el cajero
+- El monto teórico calculado internamente
+- La diferencia calculada
+- El estado determinado
+- La fecha y hora exacta de cierre
+- El identificador del supervisor que confirma
+- El estado de la sesión cambia a "cerrada"
+
+### 5.8 Protección del DTO de Entrada
+
+**Regla crítica de seguridad:** El DTO de entrada para cerrar sesión NO debe contener el monto teórico.
+
+El cajero solo ve y puede enviar:
+- Sus declaraciones de montos
+- Sus observaciones
+
+El monto teórico es calculado internamente por el sistema y nunca se expone al cajero a través de ningún medio.
+
+---
+
+## 6. REGLAS DE NEGOCIO DE SEGURIDAD
+
+### 6.1 Separación de Roles
+
+El proceso de cierre involucra dos roles distintos:
+
+**Rol del Cajero:**
+- Inicia el proceso de cierre
+- Declara los montos en mano
+- No tiene acceso al cálculo teórico
+- Espera confirmación del supervisor
+
+**Rol del Supervisor:**
+- Tiene acceso al cálculo teórico
+- Valida las declaraciones del cajero
+- Decide si acepta o cuestiona diferencias
+- Confirma el cierre definitivamente
+- Su identificador queda registrado en el cierre
+
+### 6.2 Validaciones de Seguridad
+
+Antes de procesar el cierre, el sistema debe validar:
+
+- La sesión de caja existe y está abierta
+- El cajero que cierra es el mismo que abrió la sesión (o tiene autorización)
+- El supervisor tiene permisos para cerrar sesiones
+- Los montos declarados son numéricos y positivos
+- No hay transacciones pendientes de sincronización (app móvil)
+
+### 6.3 Protección Contra Manipulación
+
+El sistema debe protegerse contra intentos de manipulación:
+
+- No permitir modificar montos después del cierre
+- Registrar quién intentó cada operación
+- Alertar si hay patrones sospechosos de diferencias
+- Mantener logs inmutables de todos los cierres
+
+---
+
+## 7. CONSIDERACIONES POR PLATAFORMA
+
+### 7.1 Backend (NestJS + TypeORM)
+
+**Implementación del Servicio:**
+
+El servicio de caja debe implementarse como un módulo independiente con las siguientes características:
+
+- Métodos protegidos con guards de autenticación
+- Transacciones para actualizar la sesión de forma atómica
+- Validaciones de autorización por roles
+- Cálculo preciso usando consultas optimizadas a la base de datos
+
+**Control de Acceso:**
+
+- El método calcularMontoTeorico debe estar restringido a roles de supervisor y superior
+- El método cerrarSesion debe verificar que el usuario tiene permisos para cerrar
+- Implementar logs de auditoría para cada operación
+
+**Manejo de Errores:**
+
+- Si la sesión no existe: retornar error claro
+- Si la sesión ya está cerrada: no permitir nuevo cierre
+- Si el supervisor no tiene permisos: rechazar operación
+- Si hay error de cálculo: loguear y reportar
+
+### 7.2 Portal Web (Next.js + API Calls)
+
+**Interfaz de Cajero:**
+
+El cajero en el portal web debe ver:
+- Un formulario simple para declarar montos
+- Campos para efectivo, tarjeta, otros
+- Campo de observaciones opcional
+- Botón para iniciar proceso de cierre
+- Mensaje de espera mientras el supervisor confirma
+
+El cajero NO debe ver:
+- El monto teórico bajo ninguna circunstancia
+- Los cálculos del sistema
+- La diferencia antes de la confirmación del supervisor
+
+**Interfaz de Supervisor:**
+
+El supervisor debe ver:
+- Los montos declarados por el cajero
+- El monto teórico calculado internamente
+- La diferencia calculada
+- El estado del cierre
+- Opciones para confirmar o rechazar
+- Historial de cierres de la sesión
+
+**Flujo de Usuario:**
+
+1. Cajero inicia cierre declarando montos
+2. Sistema notifica al supervisor
+3. Supervisor revisa la información
+4. Supervisor confirma el cierre
+5. Sistema genera el registro oficial
+6. Cajero recibe confirmación del cierre
+
+### 7.3 App Móvil (Flutter + Hive)
+
+**Validación Offline:**
+
+La app móvil debe manejar el caso de cierre offline:
+
+- Si hay conexión: proceso normal con validación en tiempo real
+- Si NO hay conexión:
+  - Permitir declarar montos offline
+  - Guardar cierre en cola de sincronización
+  - Marcar como "pendiente de verificación"
+  - Al sincronizar, el supervisor debe verificar antes de confirmar
+
+**Sincronización de Cierres:**
+
+Los cierres pendientes de sincronización deben:
+- Mantener integridad de datos offline
+- Procesarse en orden cronológico
+- Validar contra datos actualizados del servidor
+- Notificar al usuario si hay diferencias al sincronizar
+
+**Experiencia de Usuario:**
+
+- Diseño simple y claro para declaración de montos
+- Validación de formato en tiempo real
+- Confirmación visual de cierre exitoso
+- Acceso a historial de propios cierres
+
+---
+
+## 8. ESCENARIOS DE EJEMPLO
+
+### 8.1 Escenario 1: Caja Cuadrada
+
+**Situación:**
+- Saldo inicial: $100.000
+- Ventas en efectivo: $500.000
+- Gastos pagados: $50.000
+- Total teórico: $550.000
+
+**Declaración del Cajero:**
+- Efectivo declarado: $550.000
+- Diferencia: $0
+- Estado: CUADRADO
+
+**Resultado:**
+- Cierre exitoso
+- Sin alertas
+- Registro normal en auditoría
+
+### 8.2 Escenario 2: Sobrante
+
+**Situación:**
+- Saldo inicial: $100.000
+- Ventas en efectivo: $500.000
+- Gastos pagados: $50.000
+- Total teórico: $550.000
+
+**Declaración del Cajero:**
+- Efectivo declarado: $570.000
+- Diferencia: +$20.000
+- Estado: SOBRANTE
+
+**Resultado:**
+- Cierre registrado con diferencia
+- Alerta generada para revisión
+- Supervisor debe investigar origen del sobrante
+- Puede ser: error de registro, venta no contabilizada, etc.
+
+### 8.3 Escenario 3: Faltante
+
+**Situación:**
+- Saldo inicial: $100.000
+- Ventas en efectivo: $500.000
+- Gastos pagados: $50.000
+- Total teórico: $550.000
+
+**Declaración del Cajero:**
+- Efectivo declarado: $530.000
+- Diferencia: -$20.000
+- Estado: FALTANTE
+
+**Resultado:**
+- **ALERTA CRÍTICA**
+- Cierre registrado con diferencia negativa
+- Supervisor debe investigar inmediatamente
+- Posibles causas: robo, error, fraude
+- Documentación obligatoria del incidente
+
+---
+
+## 9. REPORTES Y AUDITORÍA
+
+### 9.1 Reporte de Cierres
+
+El sistema debe generar reportes de cierres que incluyan:
+
+- Fecha y hora de cada cierre
+- Cajero que realizó la operación
+- Supervisor que confirmó
+- Montos declarados vs teóricos
+- Diferencias y estados
+- Historial de variaciones por cajero
+
+### 9.2 Alertas Automáticas
+
+El sistema debe generar alertas cuando:
+
+- Hay un faltante mayor a un umbral configurable
+- Un cajero tiene patrones sospechosos de diferencias
+- Hay cierres con diferencias consecutivas
+- Hay intentos de manipulación de cierres
+
+### 9.3 Auditoría de Cierres
+
+Cada cierre debe registrarse en auditoría con:
+
+- Quién inició el cierre
+- Quién confirmó el cierre
+- Timestamp exacto de cada paso
+- Datos originales de la declaración
+- Datos calculados internamente
+- Resultado final del cierre
+
+---
+
+## 10. INTEGRACIÓN CON OTROS MÓDULOS
+
+### 10.1 Integración con Sesiones de Caja
+
+El servicio de caja trabaja directamente con la entidad de sesiones de caja:
+- Lee el saldo inicial de la sesión
+- Consulta los movimientos durante la sesión
+- Actualiza el estado de la sesión al cerrar
+
+### 10.2 Integración con Movimientos de Caja
+
+Los movimientos de caja alimentan el cálculo del teórico:
+- Todos los ingresos durante la sesión
+- Todos los egresos durante la sesión
+- El cálculo los suma y resta automáticamente
+
+### 10.3 Integración con Ventas
+
+Las ventas registradas afectan el cálculo:
+- Ventas en efectivo = ingresos
+- El sistema las considera en el cálculo teórico
+- Las ventas en otros métodos se registran por separado
+
+---
+
+## 11. PRUEBAS REQUERIDAS
+
+### 11.1 Pruebas Unitarias
+
+- Calcular monto teórico con diferentes combinaciones de movimientos
+- Determinar estado correctamente (cuadrado, sobrante, faltante)
+- Validar que el cajero no puede acceder al teórico
+- Verificar que el supervisor sí puede ver el teórico
+
+### 11.2 Pruebas de Integración
+
+- Flujo completo de cierre con sesión real
+- Sincronización offline en app móvil
+- Verificar que las diferencias se calculan correctamente
+- Validar la seguridad del DTO (teórico no incluido)
+
+### 11.3 Pruebas de Seguridad
+
+- Verificar que el cajero no puede acceder al método de cálculo
+- Intentar manipular montos después del cierre
+- Verificar que los logs de auditoría están protegidos
+- Probar bypass de roles de acceso
+
+---
+
+## 12. CONCLUSIONES
+
+El servicio de cierre de caja ciego es una medida de seguridad fundamental para prevenir fraudes y garantizar la integridad del manejo de efectivo en el sistema QFlow Pro.
+
+La implementación correcta de este servicio garantiza que:
+- Los cajeros no pueden manipular los cierres a su favor
+- Los supervisores tienen las herramientas para verificar
+- Las diferencias se detectan automáticamente
+- La auditoría mantiene un registro completo
+- La integridad del negocio se protege en todo momento
+
+La separación de roles y la protección del cálculo teórico son los pilares de esta seguridad. Cualquier intento de evadir estos controles debe ser detectado y alertado inmediatamente.

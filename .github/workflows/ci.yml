@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+    branches: ["main", "develop"]
+
+jobs:
+  # ------------------------------------------------------------------
+  # Job 1: Node.js Monorepo (API, Admin, Portal, Packages)
+  # ------------------------------------------------------------------
+  web-ci:
+    name: Web & API CI
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18]
+        pnpm-version: [8]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ matrix.pnpm-version }}
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build All (Turbo)
+        run: pnpm turbo run build
+
+      - name: Lint All (Turbo)
+        run: pnpm turbo run lint
+
+      # Running unit tests. E2E might require DB which we skip in basic CI unless service container is used.
+      - name: Test (Unit)
+        run: pnpm turbo run test --filter=!./apps/api
+
+      # Example: Setup DB for API tests if needed (Optional for now)
+      # - name: Start DB
+      #   run: docker-compose up -d postgres
+
+  # ------------------------------------------------------------------
+  # Job 2: Mobile App (Flutter)
+  # ------------------------------------------------------------------
+  mobile-ci:
+    name: Mobile App CI (Flutter)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./apps/pos
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          flutter-version: "3.x"
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze (Lint)
+        run: flutter analyze
+
+      - name: Run Tests
+        run: flutter test

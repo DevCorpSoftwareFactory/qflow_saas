@@ -1,0 +1,18 @@
+{
+  "status": "commited",
+  "type": "backend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:3000",
+  "backendAuthType": "Bearer token",
+  "backendCredential": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhODE2ZTI1Yy1lODljLTRmY2EtOGQ2MS1mODk5Y2UxNDEwYmIiLCJ0ZW5hbnRJZCI6IjExMTExMTExLTExMTEtMTExMS0xMTExLTExMTExMTExMTExMSIsImlhdCI6MTc2ODQ0Njg3OCwiZXhwIjoxNzY5MDUxNjc4fQ.ipi_MNMLeB6iJbCBGX-UsztZKEi-GkIbONLYyKBKosI",
+  "executionArgs": {
+    "projectName": "qflow-pro",
+    "projectPath": "/home/devin/Projects/qflow-pro",
+    "testIds": [],
+    "additionalInstruction": "Use the following EXISTING data for tests to avoid 400 Bad Request errors:\n- Login: testsprite@qflow.com / TestSprite123!\n- Tenant ID: 11111111-1111-1111-1111-111111111111\n- Branch ID: 33333333-3333-3333-3333-333333333333\n- Variant ID: 66666666-6666-6666-6666-666666666666 (Has 100 stock)\n- Cashier ID: ecdbde1b-223a-406f-89af-54b6799517bc\n- Payment Method: 'cash'\n\nUpdate logic for endpoints:\n- POST /inventory/check-availability uses variantId and branchId above.\n- POST /sales uses branchId, cashierId, and items with variantId above.",
+    "envs": {
+      "API_KEY": "sk-user-ncd4YwvS-xDea0x876964nppMNOPT8jBWlWrw53oeqpjZqPh19jQ-ydSECyIO-rfQrMi0zIdvqdNljR9DyVNfxbL3R4h_mEZIOxr0oSs4cmi__5QqHEdmp2_Vrb-lSzb3pc"
+    }
+  },
+  "proxy": "http://e4d8289d-585e-40ad-8072-2d66b3b3fba0:VIHTupKbrEYG58suHr97RiK9IBBCrJZu@tun.testsprite.com:8080"
+}

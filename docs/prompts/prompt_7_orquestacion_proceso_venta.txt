@@ -1,0 +1,301 @@
+# PROPUESTA TÉCNICA: ORQUESTACIÓN DEL PROCESO DE VENTA CON ATOMICIDAD
+
+## 1. CONTEXTO DEL PROYECTO
+
+QFlow Pro es un sistema ERP SaaS multi-tenant diseñado para negocios alimentarios en Colombia. El proceso de venta es una de las operaciones más críticas del sistema porque involucra múltiples tablas, afecta el inventario directamente y mueve dinero. Esta operación debe ejecutarse como una **unidad atómica**: o se completa exitosamente todo el proceso, o no se aplica ningún cambio en la base de datos.
+
+---
+
+## 2. OBJETIVO DEL SERVICIO DE VENTAS
+
+Crear un servicio centralizado de ventas que orqueste el proceso completo de registro de una venta, garantizando que todas las operaciones relacionadas se ejecuten dentro de una transacción de base de datos. Si cualquier paso falla, todos los cambios realizados hasta ese momento deben revertirse automáticamente.
+
+### 2.1 Características de la Operación
+
+La registración de una venta es una operación compleja que involucra múltiples entidades y debe cumplir con los siguientes principios:
+
+- **Atomicidad**: Si cualquier paso falla, toda la operación se aborta y revierte
+- **Consistencia**: El sistema debe mantenerse en estado consistente antes y después
+- **Aislamiento**: Transacciones simultáneas no deben interferirse entre sí
+- **Durabilidad**: Una vez completada, la venta queda permanentemente registrada
+
+### 2.2 Entrada del Proceso
+
+El proceso recibe como entrada un objeto que contiene:
+- Información del cliente
+- Identificación del cajero que realiza la operación
+- Sucursal donde se realiza la venta
+- Lista de productos vendidos (items del carrito)
+- Método de pago utilizado
+- Descuentos aplicados si los hay
+
+---
+
+## 3. DISEÑO DE LA ORQUESTACIÓN
+
+### 3.1 Transacción ACID
+
+Todo el proceso de registración de venta debe ejecutarse dentro de una transacción de base de datos. Esto significa que:
+
+- La transacción comienza antes del primer paso
+- Todos los pasos se ejecutan dentro del mismo contexto de transacción
+- Si cualquier paso falla, se hace rollback de todos los cambios
+- Si todos los pasos succeeden, se hace commit al final
+- Ningún otro proceso puede ver cambios intermedios hasta el commit
+
+### 3.2 Pasos de la Orquestación
+
+La registración de una venta debe ejecutar los siguientes pasos en secuencia:
+
+```
+INICIO registrarVenta(datosVenta)
+
+    1. INICIAR TRANSACCIÓN
+    2. VALIDAR STOCK DE CADA ITEM
+    3. GUARDAR ENCABEZADO Y DETALLES DE VENTA
+    4. REGISTRAR MOVIMIENTOS DE INVENTARIO
+    5. ACTUALIZAR EXISTENCIAS
+    6. REGISTRAR MOVIMIENTO DE CAJA
+    7. CONFIRMAR TRANSACCIÓN
+    8. RETORNAR RESPUESTA
+
+FIN
+```
+
+---
+
+## 4. DETALLE DE CADA PASO
+
+### 4.1 Iniciar Transacción
+
+Antes de ejecutar cualquier operación, se debe iniciar una transacción de base de datos. Esta transacción actuará como contenedor de todas las operaciones siguientes.
+
+El sistema debe:
+- Adquirir un bloqueo que prevenga condiciones de carrera
+- Establecer el nivel de aislamiento apropiado para la operación
+- Crear un punto de guardado para posible rollback parcial si es necesario
+
+### 4.2 Validar Stock de Cada Item
+
+Este es el primer paso crítico de la orquestación. Por cada item en el carrito de venta, se debe invocar el servicio de validación de stock para verificar disponibilidad.
+
+El proceso debe:
+- Iterar sobre todos los items de la venta
+- Para cada item, llamar al método de verificación de disponibilidad
+- Si el servicio retorna que no hay stock suficiente, abortar inmediatamente
+- Si cualquier item falla, abortar toda la operación sin guardar nada
+
+Esta validación es **mandatoria** y no puede saltarse bajo ninguna circunstancia. Es la primera línea de defensa contra ventas de productos inexistentes.
+
+### 4.3 Guardar Encabezado y Detalles de Venta
+
+Una vez validado que todos los items tienen stock suficiente, se procede a guardar el registro de la venta en la base de datos.
+
+El proceso debe:
+- Crear el registro del encabezado de venta con los datos generales
+- Asignar un número de venta único según las reglas de numeración del sistema
+- Crear un registro por cada item vendido en los detalles de venta
+- Cada detalle debe incluir precio unitario (el del momento de la venta), cantidad, descuentos y subtotal
+
+Todos estos registros deben guardarse dentro de la misma transacción activa. Si cualquier detalle falla al guardarse, toda la operación se aborta.
+
+### 4.4 Registrar Movimientos de Inventario
+
+Por cada item vendido, se debe crear un registro de movimiento de inventario que documente la salida de mercancía.
+
+El proceso debe:
+- Iterar sobre cada item de la venta
+- Para cada item, crear un registro de movimiento de tipo salida
+- El movimiento debe referenciar el documento de venta (su identificador)
+- El movimiento debe incluir el usuario que realiza la operación
+- También debe crearse el registro correspondiente en el kardex para mantener el historial inmutable
+
+Los registros de movimiento de inventario y kardex deben crearse dentro de la misma transacción, vinculados al mismo contexto.
+
+### 4.5 Actualizar Existencias (Decrementar Stock)
+
+Después de registrar los movimientos, se debe actualizar el stock disponible en el inventario.
+
+El proceso debe:
+- Por cada item vendido, buscar el registro de existencias correspondiente
+- Decrementar la cantidad disponible según la cantidad vendida
+- El decremento debe ser inmediato y visible para otras transacciones
+- Si el decremento deja el stock en cero, el sistema debe registrarlo
+
+Esta actualización también debe ejecutarse dentro de la transacción activa para garantizar que el stock se decremente solo si toda la venta se completa.
+
+### 4.6 Registrar Movimiento de Caja
+
+Finalmente, se debe registrar el movimiento de dinero correspondiente a la venta.
+
+El proceso debe:
+- Crear un registro de movimiento de caja por el total de la venta
+- El tipo de movimiento debe ser entrada (venta en efectivo u otro método)
+- Debe referenciar el documento de venta como documento origen
+- El movimiento debe incluir el cajero que recibió el dinero
+
+Este registro asegura trazabilidad completa del flujo de dinero y permite conciliar las ventas con el efectivo en caja.
+
+### 4.7 Confirmar Transacción
+
+Si todos los pasos anteriores se completaron exitosamente, se debe confirmar la transacción.
+
+El proceso debe:
+- Hacer commit de todos los cambios en la base de datos
+- Liberar cualquier bloqueo adquirido durante la transacción
+- Los cambios ahora son permanentes y visibles para otros procesos
+- Retornar al usuario la confirmación de la venta con el número asignado
+
+### 4.8 Manejo de Errores
+
+Si cualquier paso falla durante la orquestación, se debe ejecutar un rollback completo.
+
+El proceso debe:
+- Revertir todos los cambios realizados hasta el punto del error
+- Liberar cualquier bloqueo adquirido
+- Retornar un error descriptivo al usuario indicando qué falló
+- No dejar ningún registro parcial en la base de datos
+
+---
+
+## 5. CONSIDERACIONES DE CONCURRENCIA
+
+### 5.1 Condiciones de Carrera
+
+El proceso de venta es altamente susceptible a condiciones de carrera cuando múltiples ventas ocurren simultáneamente. El sistema debe implementar estrategias para evitarlas.
+
+**Escenario problemático:**
+- Dos cajeros venden el mismo producto al mismo tiempo
+- Ambos validan stock antes de guardar
+- Ambos ven que hay stock suficiente
+- Ambos decrementan el stock después
+- El resultado puede ser stock negativo o ventas de productos inexistentes
+
+**Solución:**
+- Adquirir bloqueos pesimistas en los registros de existencias antes de validar
+- Validar y actualizar dentro del mismo bloqueo
+- Permitir solo una transacción a la vez por cada registro de existencias
+
+### 5.2 Nivel de Aislamiento
+
+Se recomienda usar un nivel de aislamiento de transacción que prevenga lecturas sucias y modificaciones perdidas. El nivel Serializable o Read Committed con bloqueos explícitos es apropiado para esta operación.
+
+---
+
+## 6. INTEGRACIÓN CON LOS SERVICIOS EXISTENTES
+
+### 6.1 Dependencia del Servicio de Stock
+
+El servicio de ventas depende del servicio de stock para la validación inicial. Esta dependencia debe inyectarse y usarse en el paso de validación.
+
+El flujo es:
+- El servicio de ventas recibe la solicitud de venta
+- Itera sobre los items y delega la validación al servicio de stock
+- Si el servicio de stock lanza excepción, el servicio de ventas hace rollback
+- Si la validación pasa, continúa con los siguientes pasos
+
+### 6.2 Dependencia de Otros Módulos
+
+El proceso de venta también interactúa con:
+- **Módulo de clientes**: Para registrar el cliente de la venta
+- **Módulo de productos**: Para obtener información de variantes y precios
+- **Módulo de caja**: Para el registro del movimiento de dinero
+- **Módulo de inventarios**: Para la actualización de existencias
+
+Estas dependencias deben manejarse dentro de la misma transacción cuando sea posible para garantizar consistencia.
+
+---
+
+## 7. RESPUESTA AL USUARIO
+
+### 7.1 Respuesta Exitosa
+
+Cuando la venta se completa exitosamente, el sistema debe retornar:
+- Número de venta asignado
+- Fecha y hora de la transacción
+- Total de la venta
+- Resumen de items vendidos
+- Enlace o botón para imprimir comprobante
+
+### 7.2 Respuesta de Error
+
+Cuando la venta falla, el sistema debe retornar un error claro que indique:
+- Qué operación falló
+- Por qué falló (si es por stock, indicar cuál producto)
+- Qué puede hacer el usuario para resolverlo
+- Si el rollback fue exitoso
+
+---
+
+## 8. EVENTOS POST-VENTA
+
+### 8.1 Notificaciones
+
+Después de una venta exitosa, el sistema puede:
+- Enviar comprobante por email o WhatsApp al cliente
+- Notificar al almacén si el stock llegó a nivel mínimo
+- Actualizar estadísticas en tiempo real del dashboard
+-触发 disparadores de promociones si aplica
+
+### 8.2 Sincronización Offline (App Móvil)
+
+En el contexto de la aplicación móvil:
+- Si está offline, guardar la venta en cola de sincronización
+- Al recuperar conexión, procesar la venta completa
+- Si al procesar falla por stock, notificar al usuario
+- Mantener trazabilidad de ventas offline
+
+---
+
+## 9. AUDITORÍA Y TRAZABILIDAD
+
+### 9.1 Logs de Transacción
+
+El sistema debe registrar:
+- Inicio y fin de cada transacción
+- Tiempo de ejecución de cada paso
+- Errores encontrados durante el proceso
+- Rollbacks ejecutados y su razón
+
+### 9.2 Trazabilidad de Inventario
+
+Gracias al kardex inmutable, cada venta debe poder rastrearse:
+- Qué productos se vendieron
+- De qué lotes se tomó el producto
+- Quién registró la venta
+- Cuándo se registró
+
+---
+
+## 10. PRUEBAS REQUERIDAS
+
+### 10.1 Pruebas de Atomicidad
+
+- Verificar que si cualquier paso falla, no quedan registros parciales
+- Verificar que múltiples ventas simultáneas no corrompen datos
+- Verificar que el stock no queda en negativo
+
+### 10.2 Pruebas de Concurrencia
+
+- Simular ventas concurrentes del mismo producto
+- Verificar que los bloqueos funcionan correctamente
+- Verificar que no hay condiciones de carrera
+
+### 10.3 Pruebas de Rendimiento
+
+- Medir tiempo total de una venta
+- Verificar que no degrade bajo carga
+- Optimizar consultas lentas
+
+---
+
+## 11. CONCLUSIONES
+
+El servicio de ventas con atomicidad es el corazón operativo del sistema QFlow Pro. Su implementación correcta garantiza que:
+
+- Nunca se venda producto sin stock
+- El inventario siempre refleje las ventas reales
+- El dinero se registre correctamente
+- La consistencia de datos se mantenga bajo cualquier circunstancia
+
+La orquestación paso a paso dentro de una transacción ACID es la única manera de garantizar estos principios. Cualquier atajo o bypass de esta lógica comprometería la integridad del sistema.

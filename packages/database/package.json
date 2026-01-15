@@ -1,0 +1,29 @@
+{
+    "name": "@qflow/database",
+    "version": "0.0.1",
+    "private": true,
+    "description": "QFlow Pro - Shared Database Configuration",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "tsc -p tsconfig.build.json",
+        "migration:generate": "npm run typeorm -- migration:generate -d ./config/cli-data-source.ts",
+        "migration:run": "npm run typeorm -- migration:run -d ./config/cli-data-source.ts",
+        "migration:revert": "npm run typeorm -- migration:revert -d ./config/cli-data-source.ts",
+        "migration:show": "npm run typeorm -- migration:show -d ./config/cli-data-source.ts",
+        "migration:create": "npm run typeorm -- migration:create",
+        "db:test": "ts-node ./src/test-connection.ts"
+    },
+    "dependencies": {
+        "class-transformer": "^0.5.1",
+        "class-validator": "^0.14.3",
+        "pg": "^8.11.3",
+        "reflect-metadata": "^0.2.1",
+        "typeorm": "^0.3.20"
+    },
+    "devDependencies": {
+        "@types/node": "^20.10.0",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.3.3"
+    }
+}

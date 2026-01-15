@@ -1,0 +1,2662 @@
+# NEXFLOW ADMIN - PLATAFORMA DE ADMINISTRACIÓN
+# REQUISITOS FUNCIONALES Y ARQUITECTURA DE SERVICIOS
+# DOCUMENTO DE ESPECIFICACIÓN
+# Versión: 1.0
+# Fecha: Enero 2026
+
+================================================================================
+1. VISIÓN GENERAL DE LA PLATAFORMA ADMIN
+================================================================================
+
+1.1 Propósito
+NexFlow Admin es la plataforma de control centralizado que permite al equipo de DevCorp gestionar todo el ecosistema SaaS:
+- Clientes empresariales (tenants)
+- Licencias y suscripciones
+- Facturación y cobros
+- Soporte técnico
+- Métricas de negocio
+- Configuración global del sistema
+
+1.2 Usuarios de la Plataforma
+
+ROLES INTERNOS DEVCORP:
+
+Super Admin:
+- Acceso total sin restricciones
+- Configuración global del sistema
+- Gestión de equipo DevCorp
+
+Sales Manager:
+- Gestión de leads y oportunidades
+- Creación de licencias trial/comercial
+- Dashboard de ventas
+- NO puede modificar facturación
+
+Support Agent:
+- Gestión de tickets de soporte
+- Chat con clientes
+- Base de conocimientos
+- NO puede modificar licencias
+
+Finance Manager:
+- Gestión de facturación
+- Cobros y pagos
+- Reportes financieros
+- NO puede suspender licencias
+
+Product Manager:
+- Métricas de uso del producto
+- Análisis de features
+- Feedback de clientes
+- Solo lectura en otros módulos
+
+DevOps Engineer:
+- Monitoreo de infraestructura
+- Logs y debugging
+- Deploy y releases
+- Configuración de servidores
+
+1.3 Acceso a la Plataforma
+URL: admin.nexflow.app
+
+Requisitos de Acceso:
+- Email corporativo @devcorp.com
+- Contraseña robusta
+- Autenticación 2FA obligatoria
+- Sesión expira tras 8 horas de inactividad
+- IP whitelist (opcional para producción)
+
+================================================================================
+2. ARQUITECTURA DE SERVICIOS
+================================================================================
+
+2.1 Servicios Core de la Plataforma Admin
+
+TENANT SERVICE:
+- Gestión de clientes empresariales
+- CRUD de tenants
+- Onboarding workflow
+- Configuración por tenant
+
+LICENSE SERVICE:
+- Generación de licencias
+- Validación de licencias
+- Renovación automática
+- Suspensión/Activación
+- Control de límites
+
+BILLING SERVICE:
+- Facturación recurrente
+- Procesamiento de pagos
+- Cálculos prorrateados
+- Gestión de métodos de pago
+- Integración con pasarelas
+
+SUBSCRIPTION SERVICE:
+- Gestión de suscripciones
+- Cambios de plan (upgrade/downgrade)
+- Cálculo de addons
+- Ciclos de facturación
+
+SUPPORT SERVICE:
+- Sistema de tickets
+- Asignación automática
+- SLA tracking
+- Base de conocimientos
+
+ANALYTICS SERVICE:
+- Métricas de negocio (MRR, churn, etc.)
+- Análisis de uso
+- Dashboards ejecutivos
+- Reportes personalizados
+
+NOTIFICATION SERVICE:
+- Email transaccional
+- Notificaciones internas
+- Alertas automáticas
+- Templates personalizables
+
+DISTRIBUTION SERVICE:
+- Gestión de releases de apps
+- Upload de binarios (APK, EXE, DMG)
+- Versionado
+- Estadísticas de descargas
+
+AUDIT SERVICE:
+- Registro de todas las acciones
+- Logs centralizados
+- Compliance y seguridad
+
+2.2 Comunicación entre Servicios
+Patrón: Event-Driven Architecture + API REST
+
+Eventos del Sistema:
+
+| Evento | Published by | Suscriptores |
+|--------|--------------|--------------|
+| tenant_created | Tenant Service | License, Billing, Analytics |
+| license_activated | License Service | Billing, Notification, Analytics |
+| license_expired | License Service | Tenant, Notification |
+| payment_received | Billing Service | License, Notification, Analytics |
+| payment_failed | Billing Service | License, Notification, Support |
+| ticket_created | Support Service | Notification, Analytics |
+| subscription_upgraded | Subscription Service | License, Billing, Notification |
+
+================================================================================
+3. MÓDULO 1: GESTIÓN DE CLIENTES EMPRESARIALES
+================================================================================
+
+3.1.1 Dashboard de Clientes
+
+RF-ADMIN-001: Vista General de Clientes
+- Mostrar lista completa de clientes (tenants)
+- Vista de tarjetas o tabla
+- Información visible por cliente:
+  - Logo y nombre comercial
+  - Plan actual
+  - Estado de licencia (activo, trial, suspendido, cancelado)
+  - Fecha de registro
+  - Días como cliente
+  - MRR (ingreso mensual recurrente de ese cliente)
+  - Última actividad
+  - Número de usuarios activos
+  - Número de sucursales
+  - Uso de almacenamiento (% del límite)
+- Indicadores de salud del cliente:
+  - 🟢 Saludable (usa el sistema, paga a tiempo)
+  - 🟡 En riesgo (poco uso, pago retrasado)
+  - 🔴 Crítico (no paga, no usa, próximo a cancelar)
+
+RF-ADMIN-002: Filtros y Búsqueda
+- Buscar por:
+  - Nombre comercial
+  - NIT/RIF
+  - Email de contacto
+  - Teléfono
+  - ID de tenant
+- Filtrar por:
+  - Estado (activo, trial, suspendido, cancelado)
+  - Plan (trial, basic, pro, enterprise)
+  - Fecha de registro (rangos)
+  - Riesgo de churn (bajo, medio, alto)
+  - Región/ciudad
+  - Facturación atrasada (sí/no)
+  - Uso de sistema (alto, medio, bajo)
+- Ordenar por:
+  - Fecha de registro (más reciente/antiguo)
+  - MRR (mayor a menor)
+  - Nombre (A-Z)
+  - Estado de licencia
+
+RF-ADMIN-003: Registro de Nuevo Cliente
+- Formulario de alta con campos:
+  - Datos de la empresa:
+    - Nombre comercial (obligatorio)
+    - Razón social
+    - NIT/RIF (obligatorio)
+    - Sector/industria (selección: Lácteos, Cárnicos, Avícola, Mixto, Otro)
+    - Tamaño empresa (micro, pequeña, mediana, grande)
+    - País (Colombia por defecto)
+    - Departamento/Estado
+    - Ciudad
+    - Dirección física
+    - Sitio web (opcional)
+  - Contacto principal:
+    - Nombre completo (obligatorio)
+    - Cargo
+    - Email corporativo (obligatorio)
+    - Teléfono (obligatorio)
+    - WhatsApp (obligatorio)
+  - Información comercial:
+    - Origen (cómo nos conoció): Web, referido, llamada, evento, otro
+    - Referido por (si aplica)
+    - Observaciones/notas internas
+- Validaciones:
+  - NIT único en el sistema
+  - Email único
+  - Formato de email válido
+  - Teléfono formato válido
+- Al crear cliente:
+  - Asignar ID único (tenant_id)
+  - Generar slug único (para URL: queseria-dg)
+  - Establecer estado inicial: "Lead"
+  - Asignar al usuario de ventas que lo creó
+  - Registrar timestamp de creación
+
+RF-ADMIN-004: Perfil Completo del Cliente
+Vista unificada con toda la información del cliente en pestañas:
+
+Pestaña: Información General
+- Datos de la empresa (editable)
+- Datos del contacto (editable)
+- Historial de cambios de datos
+- Notas internas (agregar, editar, eliminar con timestamp y autor)
+
+Pestaña: Licencias
+- Licencias activas del cliente
+- Historial de licencias (anteriores, renovaciones)
+- Acciones rápidas:
+  - Crear nueva licencia
+  - Renovar licencia
+  - Suspender/Reactivar
+  - Cambiar plan
+
+Pestaña: Suscripciones y Facturación
+- Suscripción actual
+- Plan contratado
+- Ciclo de facturación (mensual/anual)
+- Método de pago registrado
+- Próxima fecha de facturación
+- Historial de facturas
+- Historial de pagos
+- Cuentas por cobrar
+
+Pestaña: Uso del Sistema
+- Estadísticas de uso:
+  - Usuarios activos (total y por sucursal)
+  - Sucursales creadas
+  - Almacenamiento usado
+  - Transacciones del mes
+  - Módulos más usados
+  - Última actividad por usuario
+- Gráficos de uso en el tiempo
+
+Pestaña: Soporte
+- Tickets de soporte del cliente
+- Estado de tickets abiertos
+- Tiempo promedio de resolución
+- Calificación de satisfacción promedio
+- Historial de interacciones
+
+Pestaña: Comunicaciones
+- Historial de emails enviados
+- Llamadas registradas
+- Reuniones agendadas
+- Demos realizadas
+- Notas de seguimiento
+- Próximas acciones programadas
+
+Pestaña: Métricas de Cliente
+- Días como cliente
+- Lifetime Value (LTV) actual
+- Lifetime Value proyectado
+- Churn risk score (0-100)
+- NPS del cliente
+- Health score (salud del cliente)
+- Probabilidad de upgrade
+- Probabilidad de churn
+
+RF-ADMIN-005: Edición de Cliente
+- Todos los campos editables excepto:
+  - tenant_id (inmutable)
+  - slug (solo cambiable con confirmación)
+  - Fechas de creación
+- Registrar auditoría de cambios:
+  - Qué se cambió
+  - Valor anterior → Valor nuevo
+  - Quién lo cambió
+  - Cuándo se cambió
+
+RF-ADMIN-006: Cambio de Estado de Cliente
+Estados del ciclo de vida:
+- Lead: Prospecto, aún no usa el sistema
+- Trial: En período de prueba
+- Active: Cliente activo pagando
+- Churned: Canceló suscripción
+- Suspended: Suspendido por falta de pago
+- Reactivated: Fue suspendido y se reactivó
+
+Cambios de estado:
+- Lead → Trial (al crear licencia trial)
+- Trial → Active (al contratar plan comercial)
+- Active → Suspended (por falta de pago)
+- Suspended → Active (al pagar deuda)
+- Active → Churned (al cancelar)
+- Churned → Reactivated (si vuelve)
+
+Al cambiar estado:
+- Registrar motivo (obligatorio)
+- Notificar al equipo relevante
+- Actualizar métricas
+- Ejecutar automatizaciones según estado
+
+RF-ADMIN-007: Segmentación de Clientes
+- Etiquetar clientes con tags:
+  - Segmento de mercado (ejemplo: "Queserías grandes")
+  - Región geográfica (ejemplo: "Costa Atlántica")
+  - Comportamiento (ejemplo: "Power user", "Riesgo churn")
+  - Potencial (ejemplo: "Upsell candidate")
+- Tags visuales con colores
+- Filtrar clientes por tags
+- Crear segmentos guardados (vistas personalizadas)
+
+RF-ADMIN-008: Exportación de Datos de Clientes
+- Exportar listado de clientes a:
+  - Excel (.xlsx)
+  - CSV
+  - PDF (formato presentación)
+- Seleccionar campos a exportar
+- Aplicar filtros antes de exportar
+- Programar exportes automáticos (opcional)
+
+RF-ADMIN-009: Historial de Interacciones
+Registrar todas las interacciones con el cliente:
+
+Llamadas:
+- Fecha y hora
+- Duración
+- Responsable (quién llamó)
+- Resumen de la conversación
+- Resultado (contestó, no contesWebFetch
+- Próxima acción
+
+Emails:
+- Registro automático de emails enviados
+- Templates usados
+- Apertura (si tracking activo)
+- Clics en enlaces
+
+Reuniones:
+- Fecha y hora programada
+- Participantes
+- Tipo (demo, onboarding, soporte, comercial)
+- Notas de la reunión
+- Acuerdos/compromisos
+
+Demos:
+- Fecha de demo
+- Productos/módulos demostrados
+- Nivel de interés (bajo, medio, alto)
+- Objeciones mencionadas
+- Próximos pasos
+
+Otros:
+- Webinars asistidos
+- Eventos compartidos
+- Feedback recibido
+
+RF-ADMIN-010: Acciones Rápidas sobre Cliente
+Desde cualquier vista de cliente, acciones de un clic:
+- 📞 Llamar (integración con VoIP)
+- ✉️ Enviar email (abrir composer)
+- 💬 Abrir chat (si está online)
+- 🎫 Crear ticket de soporte
+- 📊 Ver métricas detalladas
+- 🔒 Suspender acceso
+- ✅ Reactivar acceso
+- 📄 Generar reporte de cliente
+- 🗑️ Eliminar cliente (con confirmación múltiple)
+
+================================================================================
+MÓDULO 2: GESTIÓN DE LICENCIAS
+================================================================================
+
+3.2.1 Dashboard de Licencias
+
+RF-ADMIN-011: Vista General de Licencias
+Métricas en cards principales:
+- Total licencias activas
+- Licencias en trial (con conversión goal)
+- Licencias por vencer (próximos 15 días)
+- Licencias vencidas (últimos 7 días)
+- Licencias suspendidas
+- Nuevas licencias este mes
+
+Gráficos:
+- Evolución de licencias en el tiempo (línea)
+- Distribución por plan (torta)
+- Conversión trial → comercial (embudo)
+- Tasa de renovación mensual (%)
+
+RF-ADMIN-012: Listado de Licencias
+Tabla con columnas:
+- ID de licencia
+- Cliente (nombre + logo)
+- Plan
+- Estado (badge con color)
+- Fecha de inicio
+- Fecha de expiración
+- Días restantes
+- Auto-renovación (sí/no)
+- Acciones
+
+Filtros:
+- Por estado
+- Por plan
+- Por cliente
+- Por fecha de expiración
+- Por auto-renovación
+- Vencen en X días
+
+Acciones masivas:
+- Renovar seleccionadas
+- Enviar recordatorio
+- Exportar selección
+
+RF-ADMIN-013: Creación de Licencia
+Wizard de 4 pasos:
+
+Paso 1: Seleccionar Cliente
+- Buscar y seleccionar cliente existente
+- O crear cliente nuevo (abre modal de RF-ADMIN-003)
+- Mostrar info del cliente seleccionado
+
+Paso 2: Configurar Plan
+- Seleccionar tipo de plan:
+  - Trial (30 días gratis)
+  - Basic
+  - Pro
+  - Enterprise
+  - Custom (configuración manual)
+- Si es trial:
+  - Duración en días (default 30, editable)
+  - ¿Requiere tarjeta de crédito? (sí/no)
+  - ¿Convertir automáticamente a plan pagado al terminar? (sí/no + plan destino)
+- Si es comercial:
+  - Seleccionar plan de catálogo
+  - O configurar plan custom:
+    - Nombre del plan custom
+    - Precio mensual/anual
+    - Límites personalizados
+
+Paso 3: Configurar Límites
+Mostrar límites del plan seleccionado (editables en custom):
+- Sucursales: Número máximo permitido
+- Usuarios: Número máximo permitido
+- Almacenamiento: GB permitidos
+- Transacciones/mes: Límite mensual
+- Módulos habilitados: Selección múltiple de 32 módulos
+- Características especiales:
+  - Soporte prioritario (sí/no)
+  - API access (sí/no + rate limit)
+  - Whitelabel (sí/no)
+  - Ambiente staging (sí/no)
+  - Onboarding dedicado (sí/no)
+
+Paso 4: Configurar Fechas y Activación
+- Fecha de inicio: Hoy o fecha futura
+- Duración:
+  - Si trial: Días (default 30)
+  - Si comercial: Mensual o Anual
+- Fecha de expiración: Calculada automáticamente
+- Método de activación:
+  - Inmediata (activa al crear)
+  - Por clave (cliente debe activar con código)
+  - Programada (se activa en fecha específica)
+- Notas internas: Observaciones para el equipo
+
+Al confirmar:
+- Sistema genera:
+  - ID único de licencia
+  - Clave de activación (si aplica)
+  - Token de API
+- Crea registro en BD
+- Envía email automático al cliente con:
+  - Clave de activación
+  - Credenciales temporales (usuario admin)
+  - Guía de primeros pasos
+  - Enlace a onboarding
+- Notifica al equipo de ventas
+- Registra evento en analytics
+
+RF-ADMIN-014: Detalle de Licencia
+Vista completa con toda la información:
+
+Sección: Información General
+- ID de licencia
+- Cliente asociado (clic para ver perfil)
+- Plan contratado
+- Estado actual (con timeline de cambios de estado)
+- Fecha de creación
+- Creada por (usuario DevCorp)
+- Clave de activación (con botón copiar)
+- Token de API (con botón copiar + regenerar)
+
+Sección: Fechas y Duración
+- Fecha de inicio
+- Fecha de expiración
+- Días transcurridos
+- Días restantes
+- Contador visual de tiempo (barra de progreso)
+- Auto-renovación (toggle on/off)
+- Próxima fecha de renovación
+
+Sección: Límites y Uso Actual
+Tabla comparativa:
+| Recurso | Límite | Uso Actual | % Usado | Estado |
+|---------|--------|------------|---------|--------|
+| Sucursales | 5 | 3 | 60% | 🟢 OK |
+| Usuarios | 20 | 18 | 90% | 🟡 Cerca del límite |
+| Almacenamiento | 200GB | 150GB | 75% | 🟢 OK |
+| Transacciones/mes | 10,000 | 8,500 | 85% | 🟡 Alto uso |
+
+Alertas:
+- Si uso > 80%: Sugerir upgrade
+- Si uso > 95%: Alerta crítica
+- Si excede límite: Bloqueo (según configuración)
+
+Sección: Módulos Habilitados
+- Lista visual (grid) de módulos
+- ✅ Habilitados (verdes)
+- ❌ Deshabilitados (grises)
+- Botón "Editar módulos" (abre modal para habilitar/deshabilitar)
+
+Sección: Historial de la Licencia
+Timeline con eventos:
+- Creación
+- Activación
+- Renovaciones
+- Cambios de plan
+- Suspensiones/reactivaciones
+- Modificaciones de límites
+- Cambios de módulos
+- Cada evento con:
+  - Fecha y hora
+  - Usuario responsable
+  - Detalles del cambio
+
+Sección: Facturación Asociada
+- Facturas generadas para esta licencia
+- Estado de pago de cada factura
+- Próxima factura programada
+- Monto de próxima factura
+
+RF-ADMIN-015: Activación Manual de Licencia
+Si licencia está en estado "Pendiente":
+- Botón "Activar Ahora"
+- Confirmación requerida
+- Al activar:
+  - Estado cambia a "Activa"
+  - Inicia conteo de tiempo
+  - Desbloquea acceso al cliente
+  - Envía notificación al cliente
+  - Registra evento
+
+RF-ADMIN-016: Renovación de Licencia
+Desde detalle de licencia, botón "Renovar":
+- Modal con opciones:
+  - Tipo de renovación:
+    - Mensual (+1 mes)
+    - Anual (+12 meses)
+    - Custom (especificar duración)
+  - Cambio de plan (opcional):
+    - Mantener plan actual
+    - Cambiar a otro plan (con cálculo prorrateado)
+  - Notas de renovación
+- Mostrar cálculo:
+  - Fecha de expiración actual
+  - Nueva fecha de expiración
+  - Monto a cobrar
+  - Método de pago (si existe)
+- Opciones de cobro:
+  - Cobrar ahora (procesar pago inmediatamente)
+  - Programar cobro (en fecha de expiración)
+  - Renovar sin cobrar (cortesía)
+- Al confirmar:
+  - Extiende fecha de expiración
+  - Genera factura (si aplica)
+  - Procesa pago (si se eligió cobrar ahora)
+  - Notifica al cliente
+  - Registra renovación en historial
+
+RF-ADMIN-017: Suspensión de Licencia
+Desde detalle de licencia, botón "Suspender":
+- Modal con motivo obligatorio:
+  - Falta de pago
+  - Violación de términos de servicio
+  - Uso indebido
+  - Solicitud del cliente
+  - Otro (especificar)
+- Opciones:
+  - Efecto inmediato o programado (fecha)
+  - Periodo de gracia: Días antes de bloqueo total (0-30 días)
+  - Notificar al cliente: Sí/No (con template de email editable)
+- Al confirmar:
+  - Estado cambia a "Suspended"
+  - Bloquea acceso del cliente a NexFlow Business
+  - Cliente ve mensaje: "Tu suscripción ha sido suspendida. Contacta a soporte."
+  - Datos del cliente NO se eliminan (preservados)
+  - Envía email de notificación
+  - Crea ticket de soporte automático (si aplica)
+  - Registra en historial
+
+RF-ADMIN-018: Reactivación de Licencia
+Si licencia está suspendida:
+- Botón "Reactivar"
+- Modal con:
+  - Revisar motivo de suspensión
+  - ¿Motivo resuelto? (obligatorio describir)
+  - ¿Extender período como compensación? (días extra)
+  - Notas internas
+- Al confirmar:
+  - Estado cambia a "Activa"
+  - Restablece acceso del cliente
+  - Extiende período si aplica
+  - Notifica al cliente
+  - Cierra ticket de soporte asociado
+  - Registra en historial
+
+RF-ADMIN-019: Cancelación de Licencia
+Desde detalle de licencia, botón "Cancelar":
+- Modal de confirmación con advertencias:
+  - ⚠️ "Esta acción no se puede deshacer fácilmente"
+  - ⚠️ "El cliente perderá acceso al sistema"
+  - ⚠️ "Los datos se retendrán por X días"
+- Motivo obligatorio:
+  - Cliente solicitó cancelación
+  - Falta de pago persistente
+  - Migración a competencia
+  - Cierre del negocio del cliente
+  - Otro (especificar)
+- Opciones:
+  - Momento de cancelación:
+    - Inmediata (ahora)
+    - Al final del período pagado
+    - Fecha específica
+  - Retención de datos:
+    - 30 días
+    - 60 días
+    - 90 días
+    - Indefinido (hasta que cliente solicite eliminación)
+  - Reembolso: Sí/No + monto
+  - Encuesta de salida: Enviar al cliente (para feedback)
+- Al confirmar:
+  - Estado cambia a "Cancelled"
+  - Deshabilita auto-renovación
+  - Bloquea acceso (según timing elegido)
+  - Procesa reembolso (si aplica)
+  - Envía email de despedida + encuesta
+  - Ofrece exportación de datos
+  - Registra en historial
+  - Actualiza métricas de churn
+
+RF-ADMIN-020: Upgrade/Downgrade de Plan
+Desde detalle de licencia, botón "Cambiar Plan":
+- Modal con selección de nuevo plan
+- Comparativa visual: Plan actual vs Plan nuevo
+- Diferencias en límites y características
+- Cálculo prorrateado automático:
+  - Si es upgrade (plan más caro):
+    - Días restantes del período actual
+    - Costo del nuevo plan (proporcional a días restantes)
+    - Crédito del plan actual (proporcional)
+    - Diferencia a cobrar = Nuevo - Crédito
+    - Mostrar: "Se cobrará $X ahora y $Y en la próxima renovación"
+  - Si es downgrade (plan más barato):
+    - Calcular crédito proporcional
+    - Aplicar a próxima factura
+    - Mostrar: "Tu próxima factura será $X (con crédito de $Y aplicado)"
+- Validación de límites:
+  - Si downgrade reduce límites:
+    - Verificar uso actual del cliente
+    - Si uso excede nuevo límite:
+      - ⚠️ Alerta: "Cliente actualmente usa X usuarios, nuevo plan permite Y"
+      - Opciones:
+        - Bloquear cambio hasta que cliente reduzca uso
+        - Permitir cambio con periodo de gracia (N días para ajustar)
+        - Forzar cambio (bloqueará funcionalidad excedida)
+- Fecha de aplicación:
+  - Inmediata
+  - Al finalizar período actual
+  - Fecha específica
+- Al confirmar:
+  - Actualiza plan en licencia
+  - Ajusta límites
+  - Habilita/deshabilita módulos según nuevo plan
+  - Genera factura/nota de crédito (si aplica)
+  - Procesa cobro/reembolso
+  - Notifica al cliente
+  - Actualiza dashboard del cliente (ve nuevo plan)
+  - Registra en historial
+
+RF-ADMIN-021: Gestión de Claves de Activación
+- Regenerar clave de activación:
+  - Genera nueva clave
+  - Invalida clave anterior
+  - Usa caso: cliente perdió la clave
+- Regenerar token de API:
+  - Genera nuevo token
+  - Invalida token anterior
+  - Requiere confirmación (puede romper integraciones)
+- Copiar credenciales:
+  - Botón "Copiar todo" (clave + token + usuario)
+  - Para enviar manual al cliente
+
+RF-ADMIN-022: Control de Límites en Tiempo Real
+Sistema monitorea uso del cliente 24/7:
+
+Sucursales:
+- Si cliente intenta crear sucursal N+1 cuando límite es N:
+  - Sistema bloquea creación en NexFlow Business
+  - Muestra mensaje: "Has alcanzado el límite de sucursales de tu plan. Upgrade para crear más."
+  - Botón en mensaje lleva a portal del cliente → Upgrade
+  - En plataforma admin: Alerta visual en dashboard
+
+Usuarios:
+- Mismo comportamiento que sucursales
+
+Almacenamiento:
+- Alertas escalonadas:
+  - 80% usado: Notificación informativa al cliente
+  - 90% usado: Alerta al cliente + admin
+  - 95% usado: Alerta crítica + sugerencia de upgrade
+  - 100% usado: Bloqueo de subida de archivos (mantiene funcionalidad)
+- Cliente puede limpiar archivos o hacer upgrade
+
+Transacciones mensuales:
+- Contador mensual en dashboard del cliente
+- Alertas: 75%, 90%, 100%
+- Si excede: NO bloquear (permitir operar), pero:
+  - Notificar exceso al cliente
+  - Cobro extra por transacciones adicionales (según política)
+  - O sugerir upgrade a plan superior
+
+RF-ADMIN-023: Alertas y Notificaciones de Licencias
+Sistema genera alertas automáticas para admin:
+
+30 días antes de expiración:
+- Email a sales owner del cliente
+- Recordatorio de contactar para renovación
+
+15 días antes de expiración:
+- Email a cliente (automático)
+- Email a sales + support
+
+7 días antes de expiración:
+- Email a cliente (más urgente)
+- Notificación in-app para admin
+- SMS al contacto principal (opcional)
+
+3 días antes de expiración:
+- Email crítico a cliente
+- Llamada telefónica programada (task para sales)
+
+Día de expiración:
+- Si auto-renovación activa: Procesar pago
+- Si no: Suspender acceso + enviar último aviso
+
+Licencia suspendida:
+- Task para support: "Verificar motivo y contactar"
+
+Pago fallido:
+- Notificación inmediata a finance + sales
+- Email automático a cliente
+
+RF-ADMIN-024: Exportación de Datos de Licencias
+- Exportar todas las licencias o selección
+- Formatos: Excel, CSV, PDF
+- Campos configurables
+- Incluir uso actual (opcional)
+- Programar reportes automáticos
+
+================================================================================
+MÓDULO 3: PLANES Y SUSCRIPCIONES
+================================================================================
+
+3.3.1 Gestión de Planes
+
+RF-ADMIN-025: Catálogo de Planes
+Vista de todos los planes disponibles:
+- Planes activos (visibles para clientes)
+- Planes archivados (ya no se venden pero existen suscripciones)
+- Planes en borrador (aún no publicados)
+
+Para cada plan mostrar:
+- Nombre
+- Slug
+- Precio mensual/anual
+- Número de suscripciones activas
+- Estado (activo, archivado, borrador)
+- Visibilidad (público/privado)
+- Acciones (editar, archivar, duplicar)
+
+RF-ADMIN-026: Creación de Plan
+Formulario completo:
+
+Sección: Información Básica
+- Nombre del plan (ej: "Pro")
+- Slug (generado automático, editable): "pro"
+- Descripción corta (1 línea)
+- Descripción larga (markdown)
+- Orden de visualización (número, para sorting en página de pricing)
+- Badge/etiqueta (ej: "Más Popular", "Mejor Valor")
+
+Sección: Precios
+- Precio mensual (COP)
+- Precio anual (COP)
+  - Descuento anual (%) - calculado automáticamente
+- Precio de setup/onboarding (opcional, one-time)
+- Moneda (COP default, soportar USD, EUR futuro)
+- ¿Mostrar precio en página pública? (sí/no - si no, mostrar "Contactar")
+
+Sección: Límites
+- Sucursales máximas (número o "ilimitado")
+- Usuarios máximos (número o "ilimitado")
+- Almacenamiento (GB)
+- Transacciones mensuales (número o "ilimitado")
+- Soporte incluido:
+  - Email (tiempo de respuesta en horas)
+  - Chat (sí/no)
+  - Teléfono (sí/no)
+  - Dedicado (sí/no)
+
+Sección: Módulos Incluidos
+- Lista de los 32 módulos con checkboxes
+- Seleccionar todos / ninguno
+- Presets: "Básicos", "Estándar", "Completo"
+
+Sección: Características Destacadas
+Lista de features para mostrar en pricing page:
+- Ejemplo: "Inventario con trazabilidad por lotes"
+- Ejemplo: "Contabilidad automatizada"
+- Agregar/quitar features
+- Ordenar (drag & drop)
+- Marcar como "destacado" (con ícono especial)
+
+Sección: Restricciones
+- ¿Requiere aprobación para contratar? (sí/no)
+- ¿Solo para ciertos países? (selección múltiple)
+- ¿Solo para ciertos sectores? (selección múltiple)
+- Cantidad mínima de usuarios (para planes enterprise)
+- Contrato mínimo (meses)
+
+Sección: Trial
+- ¿Ofrecer trial? (sí/no)
+- Duración del trial (días)
+- ¿Requiere tarjeta de crédito para trial? (sí/no)
+- ¿Conversión automática a pagado? (sí/no)
+
+Sección: Visibilidad
+- Público (visible en página de pricing)
+- Privado (solo asignable manualmente por admin)
+- Estado: Activo / Inactivo / Borrador
+
+Al guardar:
+- Validar todos los campos
+- Generar slug único
+- Crear plan en BD
+- No afecta suscripciones existentes (solo nuevas)
+
+RF-ADMIN-027: Edición de Plan
+- Modificar cualquier campo del plan
+- Cambios NO afectan suscripciones activas (mantienen plan original)
+- Opción: "Aplicar cambios a suscripciones existentes"
+  - Mostrar cuántas suscripciones se afectarían
+  - Confirmación obligatoria
+  - Notificar a clientes afectados (opcional)
+- Historial de cambios del plan (versionado)
+
+RF-ADMIN-028: Archivar Plan
+- Planes archivados no aparecen en catálogo público
+- Suscripciones existentes siguen funcionando normalmente
+- No se pueden crear nuevas suscripciones con plan archivado
+- Se puede "desarchivar" (volver a activar)
+- Mostrar razón de archivo
+
+RF-ADMIN-029: Duplicar Plan
+- Crea copia exacta del plan
+- Nuevo slug automático (ej: "pro-copy")
+- Útil para crear variaciones rápidamente
+
+RF-ADMIN-030: Página de Pricing Pública
+Configuración de la página pública de precios:
+
+Layout:
+- Vista de tarjetas (grid)
+- Vista de tabla comparativa
+- Ambos (tarjetas arriba, tabla abajo)
+
+Planes a mostrar:
+- Seleccionar qué planes públicos mostrar
+- Orden de visualización
+- Cuál marcar como "Recomendado"
+
+Calculadora de precio:
+- Mostrar/ocultar calculadora interactiva
+- "¿Cuántos usuarios necesitas?"
+- "¿Cuántas sucursales?"
+- Calcular precio estimado
+
+Comparativa de características:
+- Tabla con todas las features
+- Checkmarks por plan
+- Scroll horizontal en móvil
+
+Toggle Mensual/Anual:
+- Mostrar ahorro al elegir anual
+- Animación de cambio de precio
+
+FAQs:
+- Preguntas frecuentes sobre precios
+- Editables desde admin
+
+Testimonios:
+- Incluir testimonios de clientes
+- Con foto, nombre, empresa
+
+Call to Actions:
+- Botones personalizables por plan
+- "Comenzar Trial", "Contratar", "Contactar Ventas"
+
+Prévisualización en vivo de cambios
+
+3.3.2 Gestión de Addons
+
+RF-ADMIN-031: Catálogo de Addons
+Lista de complementos disponibles:
+- Nombre del addon
+- Tipo (módulo, límite, feature)
+- Precio mensual
+- Compatible con qué planes
+- Número de clientes que lo tienen activo
+- Estado (activo/inactivo)
+
+RF-ADMIN-032: Creación de Addon
+Formulario:
+
+Información básica:
+- Nombre (ej: "Almacenamiento Extra")
+- Slug: "storage-extra"
+- Descripción
+- Ícono/imagen
+
+Tipo de addon:
+- Módulo adicional (habilita módulo X)
+- Incremento de límite (+ usuarios, + storage, + sucursales)
+- Feature especial (whitelabel, soporte 24/7, etc.)
+
+Precio:
+- Mensual
+- Anual (con descuento opcional)
+
+Valor/Cantidad:
+- Si es límite: Cantidad que agrega (ej: +50GB, +5 usuarios)
+- Si es módulo: Módulo que habilita
+
+Compatibilidad:
+- Todos los planes
+- Solo ciertos planes (selección)
+
+Configuración:
+- ¿Requiere aprobación? (sí/no)
+- ¿Cantidad variable? (cliente puede comprar múltiples unidades)
+
+Estado: Activo/Inactivo
+
+RF-ADMIN-033: Asignación de Addon a Cliente
+Desde perfil de cliente o licencia:
+- Botón "Agregar Addon"
+- Seleccionar addon de catálogo
+- Si es variable, especificar cantidad
+- Calcular precio total
+- Establecer fecha de inicio (hoy o próxima factura)
+- Confirmar
+- Al confirmar:
+  - Addon se activa inmediatamente
+  - Aumenta límites (si aplica)
+  - Habilita módulo (si aplica)
+  - Se incluye en próxima factura
+  - Notifica al cliente
+
+RF-ADMIN-034: Remover Addon de Cliente
+- Desde lista de addons activos del cliente
+- Seleccionar addon a remover
+- Opciones:
+  - Remover ahora (inmediato)
+  - Remover al final del período de facturación
+- Calcular crédito (si aplica)
+- Confirmar
+- Al confirmar:
+  - Deshabilita addon
+  - Reduce límites (si aplica)
+  - Crédito en próxima factura o no cobrar más
+  - Notifica al cliente
+
+3.3.3 Gestión de Suscripciones
+
+RF-ADMIN-035: Dashboard de Suscripciones
+Métricas clave:
+- Total suscripciones activas
+- MRR (Monthly Recurring Revenue) total
+- ARR (Annual Recurring Revenue) total
+- Nuevas suscripciones este mes
+- Suscripciones canceladas este mes
+- Churn rate (%)
+- Distribución por plan (gráfico)
+- Distribución por ciclo (mensual vs anual)
+
+RF-ADMIN-036: Listado de Suscripciones
+Tabla con todas las suscripciones:
+- ID suscripción
+- Cliente
+- Plan
+- Ciclo (mensual/anual)
+- Estado
+- Fecha inicio período actual
+- Fecha fin período actual
+- MRR (ingreso mensual de esa suscripción)
+- Auto-renovación (sí/no)
+- Acciones
+
+Filtros:
+- Por estado
+- Por plan
+- Por ciclo de facturación
+- Por cliente
+- Por fecha de renovación próxima
+
+RF-ADMIN-037: Detalle de Suscripción
+Vista completa:
+- Información general
+- Licencia asociada
+- Plan contratado
+- Addons activos
+- Ciclo de facturación
+- Fechas de período actual
+- Próxima fecha de renovación
+- Auto-renovación (toggle)
+- Método de pago
+- Historial de pagos
+- Facturas generadas
+- Cambios de plan históricos
+
+RF-ADMIN-038: Cambio de Ciclo de Facturación
+Cliente puede cambiar de mensual a anual o viceversa:
+- Desde detalle de suscripción, botón "Cambiar Ciclo"
+- Opciones:
+  - Mensual → Anual
+  - Anual → Mensual
+- Cálculo prorrateado:
+  - Si cambia a anual a mitad de mes:
+    - Días restantes del mes actual
+    - Cobrar 11 meses + días proporcionales
+    - Aplicar descuento anual
+  - Si cambia a mensual desde anual:
+    - Meses restantes del año
+    - Crédito proporcional
+    - Aplicar en siguientes facturas mensuales
+- Mostrar claramente el cálculo
+- Confirmar cambio
+- Al confirmar:
+  - Actualiza ciclo
+  - Genera factura/nota de crédito
+  - Ajusta próximas fechas de renovación
+  - Notifica al cliente
+
+RF-ADMIN-039: Pausar Suscripción
+Cliente puede pausar suscripción temporalmente:
+- Desde detalle, botón "Pausar"
+- Duración de pausa (1-3 meses)
+- Motivo (opcional)
+- Durante pausa:
+  - No se cobra
+  - Acceso deshabilitado
+  - Datos preservados
+- Fecha de reactivación automática
+- O reactivación manual
+- Al pausar:
+  - Estado: "Paused"
+  - Deshabilita cobros automáticos
+  - Notifica al cliente
+- Al reactivar:
+  - Estado vuelve a "Active"
+  - Restablece acceso
+  - Reanuda cobros
+
+RF-ADMIN-040: Cancelación de Suscripción
+(Ya cubierto parcialmente en RF-ADMIN-019, pero específico de suscripción):
+- Desde detalle de suscripción
+- Opciones:
+  - Inmediata (pierde acceso ahora)
+  - Al final del período (mantiene acceso hasta fecha de expiración)
+- Motivo obligatorio
+- Encuesta de salida (enviar al cliente)
+- Opciones de reembolso
+- Al confirmar:
+  - Marca auto-renovación OFF
+  - Deshabilita cobros futuros
+  - Si inmediata: Bloquea acceso
+  - Envía email de despedida
+  - Ofrece exportación de datos
+  - Actualiza métricas de churn
+
+================================================================================
+MÓDULO 4: FACTURACIÓN SAAS
+================================================================================
+
+4.1 Facturación Automática
+
+RF-ADMIN-041: Proceso de Facturación Recurrente Automático
+- Sistema ejecuta proceso CRON diario a las 2:00 AM
+- Identifica todas las suscripciones que renuevan HOY
+- Para cada suscripción:
+  - Verificar estado (activa, auto-renovación ON)
+  - Calcular monto total:
+    - Plan base (mensual o anual)
+    - Addons activos
+    - Ajustes prorrateados (si hubo cambios en el mes)
+    - Impuestos (IVA si aplica según país)
+  - Generar factura con número consecutivas
+  - Intentar cobro con método de pago registrado
+  - Registrar resultado (exitoso o fallido)
+- Si cobro exitoso:
+  - Marcar factura como "Pagada"
+  - Extender período de suscripción (+1 mes o +1 año)
+  - Actualizar fecha de próxima renovación
+  - Enviar recibo por email
+  - Registrar transacción
+  - Actualizar MRR/ARR
+- Si cobro falla:
+  - Marcar factura como "Pendiente"
+  - Registrar motivo de fallo
+  - Enviar email a cliente: "No pudimos procesar tu pago"
+  - Notificar a equipo finance y sales
+  - Programar reintento (día +3)
+  - Mantener suscripción activa (período de gracia)
+- Generar reporte diario de facturación con:
+  - Facturas generadas
+  - Cobros exitosos/fallidos
+  - MRR del día
+  - Problemas encontrados
+
+RF-ADMIN-042: Política de Reintentos
+Si pago falla en día 0 (renovación):
+
+Día +3: Primer reintento automático
+- Ejecuta proceso de cobro nuevamente
+- Si exitoso: Todo resuelto
+- Si falla: Enviar segundo recordatorio al cliente
+
+Día +5: Segundo reintento
+- Si exitoso: Resuelto con advertencia al cliente
+- Si falla: Alerta crítica a finance
+
+Día +7: Tercer reintento (último)
+- Si exitoso: Resuelto
+- Si falla: Suspender suscripción
+  - Estado cambia a "Suspended"
+  - Bloquea acceso del cliente
+  - Email de suspensión
+  - Período de gracia adicional: 7 días para pagar antes de eliminación
+
+Cliente puede actualizar método de pago en cualquier momento
+Al actualizar método de pago:
+  - Si suscripción suspendida por pago: Reintentar cobro inmediatamente
+  - Si exitoso: Reactivar automáticamente
+
+RF-ADMIN-043: Generación de Facturas
+Factura incluye:
+
+Encabezado:
+- Logo DevCorp
+- Datos fiscales DevCorp (NIT, dirección, etc.)
+- Número de factura (formato: NF-2026-00001)
+- Fecha de emisión
+- Fecha de vencimiento
+
+Datos del cliente:
+- Nombre comercial
+- NIT/RIF
+- Dirección
+- Email de facturación
+
+Período facturado:
+- "Suscripción Plan Pro - Mensual"
+- "Período: 01 Feb 2026 - 28 Feb 2026"
+
+Detalle de líneas:
+- Plan base (nombre, cantidad: 1, precio unitario, subtotal)
+- Cada addon activo (nombre, cantidad, precio, subtotal)
+- Ajustes prorrateados (si aplica):
+  - Upgrade realizado (crédito/cargo)
+  - Descuentos aplicados
+- Subtotal
+- Impuestos (IVA 19% u otros según país)
+- Total a pagar (destacado)
+
+Información de pago:
+- Método de pago usado (últimos 4 dígitos de tarjeta)
+- ID de transacción
+- Estado: Pagada / Pendiente / Vencida
+
+Pie de factura:
+- Términos y condiciones
+- Datos de contacto soporte
+
+Formato: PDF profesional, responsive
+Firmado digitalmente (opcional)
+Envío automático por email
+
+RF-ADMIN-044: Facturación Prorrateada
+
+Escenario 1: Upgrade a mitad de período
+- Cliente tiene Plan Basic ($150k/mes)
+- Día 15 del mes hace upgrade a Pro ($350k/mes)
+- Cálculo:
+  - Días restantes del mes: 15 días
+  - Costo Pro proporcional: ($350k / 30) × 15 = $175k
+  - Crédito Basic proporcional: ($150k / 30) × 15 = $75k
+  - Cargo inmediato: $175k - $75k = $100k
+- Sistema:
+  - Genera factura inmediata por $100k
+  - Cobra al método de pago
+  - Si exitoso: Upgrade aplicado
+  - Próxima factura (día 1 del siguiente mes): $350k completo
+
+Escenario 2: Downgrade a mitad de período
+- Cliente tiene Plan Pro ($350k/mes)
+- Día 20 hace downgrade a Basic ($150k/mes)
+- Cálculo:
+  - Días restantes: 10 días
+  - Crédito Pro no usado: ($350k / 30) × 10 = $116.7k
+  - Costo Basic proporcional: ($150k / 30) × 10 = $50k
+  - Crédito generado: $116.7k - $50k = $66.7k
+- Sistema:
+  - Genera nota de crédito por $66.7k
+  - Aplica crédito a próxima factura
+  - Próxima factura: $150k - $66.7k = $83.3k
+  - Cliente informado del crédito
+
+RF-ADMIN-045: Dashboard de Facturación
+Vista unificada para equipo finance:
+
+Métricas del mes:
+- Total facturado (mes actual)
+- Total cobrado (efectivo)
+- Total pendiente de cobro
+- Tasa de cobro exitoso (%)
+- Número de facturas generadas
+- Número de pagos fallidos
+
+Gráficos:
+- Ingresos por mes (12 meses)
+- Facturas pagadas vs pendientes (torta)
+- Tasa de pagos exitosos (línea temporal)
+
+Alertas:
+- Facturas vencidas (listado)
+- Pagos fallidos hoy
+- Clientes con 3+ facturas pendientes
+- Disputas/chargebacks abiertos
+
+RF-ADMIN-046: Listado de Facturas
+Tabla con todas las facturas:
+- Número de factura
+- Cliente
+- Fecha emisión
+- Monto
+- Estado (badge con color)
+- Método de pago
+- Acciones (ver, descargar PDF, reenviar email, marcar como pagada)
+
+Filtros:
+- Por estado (pendiente, pagada, vencida, anulada)
+- Por cliente
+- Por rango de fechas
+- Por monto (mayor/menor a X)
+- Por método de pago
+
+Ordenar:
+- Fecha (reciente/antigua)
+- Monto (mayor/menor)
+- Estado
+
+Acciones masivas:
+- Enviar recordatorio a seleccionadas
+- Exportar selección
+- Marcar como pagadas (con confirmación)
+
+RF-ADMIN-047: Detalle de Factura
+Vista completa:
+- PDF embebido (visualización)
+- Información completa de la factura
+- Suscripción asociada
+- Cliente asociado (link a perfil)
+- Estado con historial de cambios
+- Método de pago usado
+- Transacción(es) asociada(s)
+- Intentos de cobro realizados
+- Comunicaciones relacionadas (emails enviados)
+- Acciones disponibles:
+  - Descargar PDF
+  - Reenviar por email
+  - Marcar como pagada manualmente
+  - Anular factura
+  - Registrar pago parcial
+  - Agregar nota interna
+
+RF-ADMIN-048: Facturas Manuales
+Crear factura manual (para casos especiales):
+- Seleccionar cliente
+- Tipo de factura:
+  - Servicios profesionales
+  - Implementación personalizada
+  - Capacitación
+  - Addon one-time
+  - Ajuste manual
+  - Otro
+- Líneas de factura (agregar múltiples):
+  - Descripción
+  - Cantidad
+  - Precio unitario
+  - Subtotal (calculado)
+- Subtotal
+- Impuestos (seleccionar tasa)
+- Total
+- Fecha de emisión
+- Fecha de vencimiento
+- Observaciones internas
+- Método de pago esperado
+- Generar factura
+- Enviar al cliente (opcional)
+- Registrar como pendiente de pago
+
+RF-ADMIN-049: Anulación de Facturas
+Desde detalle de factura, botón "Anular":
+- Solo facturas pendientes o pagadas (en ciertos casos)
+- Motivo obligatorio:
+  - Error en facturación
+  - Duplicada
+  - Cliente canceló antes de cobro
+  - Ajuste comercial
+  - Otro (especificar)
+- Si factura estaba pagada:
+  - Opción de reembolso (sí/no)
+  - Monto a reembolsar
+- Confirmación requerida
+- Al anular:
+  - Estado cambia a "Anulada"
+  - Si había pago: Procesar reembolso (si se eligió)
+  - Genera nota de crédito
+  - Ajusta métricas (descuenta del MRR)
+  - Notifica al cliente
+  - Registra en auditoría
+
+RF-ADMIN-050: Notas de Crédito
+Generadas por:
+- Anulación de factura
+- Devolución parcial/total
+- Ajustes comerciales
+- Downgrade con crédito
+
+Contenido:
+- Número de nota de crédito
+- Vinculada a factura original
+- Monto del crédito
+- Razón del crédito
+- Aplicación:
+  - Reembolso inmediato
+  - Aplicar a próxima(s) factura(s)
+  - Mantener como crédito disponible
+
+Gestión:
+- Listado de notas de crédito
+- Ver detalle
+- Aplicar crédito manualmente
+- Reversar nota de crédito (excepcional)
+
+RF-ADMIN-051: Reportes de Facturación
+Reportes disponibles:
+
+Reporte mensual de facturación:
+- Total facturado
+- Total cobrado
+- Total pendiente
+- Tasa de cobro
+- Desglose por plan
+
+Reporte de ingresos reconocidos:
+- Según principio de causación contable
+- Ingresos diferidos (suscripciones anuales)
+- Reconocimiento mensual
+
+Reporte de morosidad:
+- Facturas vencidas
+- Antigüedad de facturas
+- Clientes morosos
+- Acciones de cobro realizadas
+
+Reporte de métodos de pago:
+- Distribución por método
+- Tasas de éxito por método
+- Comisiones por método
+
+Proyección de ingresos:
+- MRR actual
+- ARR actual
+- Proyección próximos 3, 6, 12 meses
+- Basado en tendencias
+
+RF-ADMIN-052: Exportación de Datos Fiscales
+Para declaraciones y contabilidad externa:
+- Exportar libro de ventas (Excel/CSV)
+- Exportar facturas de período (PDF batch)
+- Formato DIAN (si aplica - Colombia)
+- Formato para software contable (SIIGO, Alegra, etc.)
+- Exportar notas de crédito
+- Exportar retenciones (si aplica)
+
+================================================================================
+MÓDULO 5: GESTIÓN DE PAGOS
+================================================================================
+
+5.1 Métodos de Pago
+
+RF-ADMIN-053: Dashboard de Pagos
+Vista para equipo finance:
+
+Métricas del día:
+- Pagos procesados hoy
+- Monto total recibido
+- Pagos exitosos vs fallidos (%)
+- Pagos pendientes de confirmación
+
+Alertas:
+- Pagos rechazados en última hora
+- Disputas/chargebacks nuevos
+- Métodos de pago por expirar (tarjetas)
+
+Gráficos:
+- Volumen de pagos diarios (últimos 30 días)
+- Tasa de éxito por método de pago
+- Distribución por método de pago
+
+RF-ADMIN-054: Listado de Transacciones
+Tabla completa de transacciones:
+- ID de transacción
+- Cliente
+- Factura asociada
+- Monto
+- Método de pago
+- Estado (exitosa, fallida, pendiente, reembolsada)
+- Fecha y hora
+- Gateway/Pasarela usado
+- ID de transacción de pasarela
+- Acciones
+
+Filtros:
+- Por estado
+- Por cliente
+- Por método de pago
+- Por pasarela
+- Por rango de fechas
+- Por monto
+
+Búsqueda:
+- Por ID de transacción
+- Por ID de factura
+- Por referencia de pasarela
+
+RF-ADMIN-055: Detalle de Transacción
+Vista completa:
+- Información general (ID, fecha, monto, estado)
+- Cliente asociado (link)
+- Factura asociada (link)
+- Método de pago usado
+- Pasarela de pago utilizada
+- ID de transacción en pasarela
+- Request enviado a pasarela (JSON)
+- Response recibida (JSON)
+- Código de error (si falló)
+- Motivo de rechazo (si falló)
+- IP del cliente
+- Metadata adicional
+- Timeline de eventos
+- Acciones:
+  - Reintentar cobro (si falló)
+  - Procesar reembolso
+  - Ver en dashboard de pasarela (link externo)
+  - Exportar detalles
+
+RF-ADMIN-056: Integración con Pasarelas
+Pasarelas soportadas:
+- Wompi (Colombia): Principal
+- PayU Latam: Alternativa
+- Stripe: Internacional
+- Mercado Pago: Futuro
+
+Configuración por pasarela:
+- API Keys (pública y secreta)
+- Webhook URL
+- Modo (sandbox/producción)
+- Moneda por defecto
+- Comisiones
+- Estado (activa/inactiva)
+
+Flujo de pago:
+1. Cliente registra método de pago en su portal
+2. Sistema tokeniza con pasarela (no almacena datos de tarjeta completos)
+3. Guarda token en BD
+4. Al facturar: Usa token para cobrar
+5. Pasarela procesa y responde
+6. Sistema registra resultado
+7. Si exitoso: Confirma pago
+8. Si falla: Registra error e inicia reintentos
+
+RF-ADMIN-057: Gestión de Métodos de Pago de Clientes
+Desde perfil de cliente, sección "Métodos de Pago":
+- Ver métodos registrados:
+  - Tarjeta XXXX XXXX XXXX 4242 (Visa) - Expira 12/2026
+  - Cuenta bancaria XXXXX123 (Bancolombia)
+- Método principal (marcado con badge)
+- Acciones:
+  - Ver detalles
+  - Marcar como principal
+  - Eliminar método
+  - Solicitar actualización al cliente (envía email)
+
+RF-ADMIN-058: Reembolsos
+Desde transacción o factura, botón "Reembolsar":
+- Tipo de reembolso:
+  - Total (monto completo)
+  - Parcial (especificar monto)
+- Motivo obligatorio:
+  - Error de facturación
+  - Cliente insatisfecho
+  - Cancelación de servicio
+  - Ajuste comercial
+  - Disputa/chargeback
+  - Otro (especificar)
+- Método:
+  - Reembolso a método de pago original (automático)
+  - Generar crédito para próximas facturas
+  - Transferencia bancaria manual
+- Confirmación requerida
+- Al procesar:
+  - Envía request a pasarela
+  - Espera confirmación
+  - Actualiza estado de transacción
+  - Genera nota de crédito
+  - Ajusta métricas
+  - Notifica al cliente
+  - Registra en auditoría
+
+Tiempo de reembolso:
+- Tarjetas: 5-10 días hábiles
+- Cuentas bancarias: 1-3 días hábiles
+- Según políticas de cada pasarela
+
+RF-ADMIN-059: Disputas y Chargebacks
+Cuando pasarela notifica disputa (vía webhook):
+- Sistema crea registro de disputa
+- Notificación inmediata a finance y legal
+- Detalle de disputa:
+  - Transacción original
+  - Monto disputado
+  - Motivo alegado por cliente
+  - Fecha de la disputa
+  - Fecha límite para responder
+  - Estado: Abierta, En revisión, Ganada, Perdida
+- Gestión:
+  - Asignar responsable
+  - Adjuntar evidencia (facturas, emails, logs de uso)
+  - Agregar notas del caso
+  - Enviar evidencia a pasarela (upload)
+  - Seguimiento del caso
+- Al resolverse:
+  - Si ganada: Recuperar fondos
+  - Si perdida: Registrar pérdida, considerar suspender cliente
+  - Actualizar métricas de disputas
+  - Aprender del caso (agregar a base de conocimiento)
+
+RF-ADMIN-060: Conciliación Bancaria
+Para finance:
+- Importar extracto bancario (CSV/Excel)
+- Mapear columnas (fecha, monto, referencia)
+- Sistema busca transacciones coincidentes
+- Match automático por monto y fecha (±2 días)
+- Marcar como conciliadas
+- Transacciones no conciliadas:
+  - Revisar manualmente
+  - Asignar a factura específica
+  - Marcar como "otro ingreso"
+- Generar reporte de conciliación:
+  - Transacciones conciliadas
+  - Transacciones pendientes
+  - Diferencias encontradas
+
+RF-ADMIN-061: Reportes de Pagos
+- Reporte diario de transacciones
+- Reporte de comisiones de pasarelas
+- Reporte de reembolsos procesados
+- Reporte de disputas y chargebacks
+- Análisis de tasas de aprobación por pasarela
+- Tiempo promedio de procesamiento
+- Métodos de pago más usados
+
+================================================================================
+MÓDULO 6: SOPORTE TÉCNICO
+================================================================================
+
+6.1 Sistema de Tickets
+
+RF-ADMIN-062: Dashboard de Soporte
+Vista para equipo de support:
+
+Métricas:
+- Tickets abiertos
+- Tickets en mi cola (asignados a mí)
+- Tickets sin asignar
+- Tickets resueltos hoy
+- Tiempo promedio de primera respuesta
+- Tiempo promedio de resolución
+- SLA en riesgo (próximos a vencer)
+- Tickets que violaron SLA
+- CSAT promedio (satisfacción del cliente)
+
+Alertas:
+- Tickets críticos sin respuesta
+- Tickets escalados
+- SLA por vencer (< 2 horas)
+
+Gráficos:
+- Volumen de tickets (últimos 30 días)
+- Tickets por categoría (torta)
+- Tickets por estado
+- Tendencia de resolución
+
+RF-ADMIN-063: Listado de Tickets
+Vista personalizable:
+
+Vista "Mi Cola": Tickets asignados a mí
+Vista "Sin Asignar": Tickets pendientes de asignación
+Vista "Todos": Todos los tickets
+
+Tabla con columnas:
+- Número de ticket
+- Cliente
+- Asunto
+- Categoría
+- Prioridad (badge con color)
+- Estado
+- Asignado a
+- Última respuesta (hace X tiempo)
+- SLA restante (barra de progreso)
+- Creado hace
+
+Filtros:
+- Por estado
+- Por prioridad
+- Por categoría
+- Por agente asignado
+- Por cliente
+- Por SLA (en riesgo, violado, cumpliendo)
+- Por fecha de creación
+
+Acciones masivas:
+- Asignar seleccionadas
+- Cambiar prioridad
+- Cerrar masivamente (con plantilla)
+
+RF-ADMIN-064: Creación de Ticket
+Desde plataforma admin (en nombre del cliente):
+- Cliente (búsqueda)
+- Usuario del cliente que reporta (opcional)
+- Categoría:
+  - Técnico (bugs, errores, performance)
+  - Facturación (problemas de pago, facturas)
+  - Consulta (cómo usar funcionalidad)
+  - Feature Request (solicitud de nueva funcionalidad)
+  - Bug Report (reporte de error)
+  - Otro
+- Prioridad:
+  - Baja: No urgente
+  - Media: Importante pero no urgente
+  - Alta: Urgente, impacta operación
+  - Crítica: Sistema caído, bloqueante
+- Asunto (1 línea)
+- Descripción (detallada, markdown)
+- Adjuntos (screenshots, logs, videos)
+- Asignar a (seleccionar agente o dejar sin asignar)
+- Tags personalizados
+- Crear
+- Al crear:
+  - Genera número de ticket (ej: #TK-12345)
+  - Estado inicial: "Nuevo"
+  - Registra timestamp
+  - Si asignado: Notifica al agente
+  - Si no asignado: A la cola general
+  - Envía email de confirmación al cliente
+  - Inicia timer de SLA
+
+RF-ADMIN-065: Detalle de Ticket
+Vista completa en 3 columnas:
+
+Columna Izquierda: Información del Ticket
+- Número de ticket
+- Estado (dropdown para cambiar)
+- Prioridad (dropdown)
+- Categoría (dropdown)
+- Cliente (link a perfil)
+- Usuario reportador (link)
+- Asignado a (dropdown para reasignar)
+- Creado hace X
+- Última actualización hace X
+- SLA:
+  - Tiempo para primera respuesta (verde/amarillo/rojo)
+  - Tiempo para resolución (barra)
+- Tags (agregar/quitar)
+
+Columna Central: Conversación
+Thread de mensajes:
+- Mensaje inicial del cliente
+- Respuestas del agente
+- Respuestas del cliente
+- Notas internas (solo visibles para equipo DevCorp)
+- Cada mensaje con:
+  - Avatar del autor
+  - Nombre y rol
+  - Timestamp
+  - Contenido (markdown rendered)
+  - Adjuntos (mostrar inline si es imagen)
+  - Botones: Responder, Citar, Reaccionar
+
+Composer al final:
+- Editor de texto enriquecido
+- Opciones:
+  - Responder a cliente (público)
+  - Agregar nota interna (privado)
+- Adjuntar archivos
+- Mencionar colegas (@nombre)
+- Insertar template de respuesta (snippets)
+- Botones:
+  - Enviar
+  - Enviar y cerrar
+  - Enviar y marcar como resuelto
+
+Columna Derecha: Contexto del Cliente
+- Información del cliente:
+  - Plan actual
+  - Estado de licencia
+  - Días como cliente
+  - Última actividad en sistema
+  - Número de usuarios activos
+  - Uso de recursos
+- Tickets anteriores del cliente:
+  - Lista de últimos 5 tickets
+  - Ver todos (link)
+- Actividad reciente:
+  - Últimos logins
+  - Acciones recientes en sistema
+- Artículos relacionados de KB:
+  - Sugerencias automáticas según asunto
+
+RF-ADMIN-066: Asignación de Tickets
+
+Asignación automática:
+- Al crear ticket, si categoría tiene equipo asignado:
+  - Técnico → Equipo técnico
+  - Facturación → Finance
+  - Consulta → Support general
+- Round-robin entre agentes disponibles del equipo
+- Considera carga actual de cada agente
+- Evita asignar si agente está offline o ausente
+
+Asignación manual:
+- Supervisor puede asignar a agente específico
+- Agente puede auto-asignarse tickets sin asignar
+- Reasignar ticket a otro agente
+- Escalar ticket a supervisor/especialista
+
+Al asignar:
+- Estado cambia a "Asignado"
+- Agente recibe notificación
+- Inicia timer de respuesta
+
+RF-ADMIN-067: Escalamiento de Tickets
+Desde detalle, botón "Escalar":
+- Escalar a:
+  - Supervisor de soporte
+  - Equipo técnico (desarrollo)
+  - Finance
+  - Sales (si es comercial)
+  - Gerencia (casos extremos)
+- Motivo de escalamiento (obligatorio)
+- Prioridad se puede aumentar automáticamente
+- Notifica al destinatario
+- Cliente es informado: "Tu caso ha sido escalado a un especialista"
+- Registra en historial
+
+RF-ADMIN-068: Estados de Tickets
+Flujo de estados:
+
+Nuevo: Recién creado, sin asignar
+Asignado: Asignado a agente pero sin responder
+Abierto: Agente respondió, esperando más info o trabajando
+En Progreso: Agente trabajando activamente en solución
+Esperando Cliente: Agente preguntó algo, esperando respuesta del cliente
+Resuelto: Solución implementada, esperando confirmación del cliente
+Cerrado: Cliente confirmó resolución o auto-cerrado tras X días
+Reabierto: Cliente indicó que problema persiste
+
+Cambios de estado:
+- Agente puede cambiar estado en cualquier momento
+- Ciertas transiciones requieren nota explicativa
+- Al cambiar a "Resuelto": Enviar encuesta de satisfacción
+- Auto-cerrado: Si está "Resuelto" por 7 días sin respuesta del cliente
+
+RF-ADMIN-069: SLA (Service Level Agreement)
+Configuración de SLA por plan del cliente:
+
+| Plan | Primera Respuesta | Resolución |
+|------|-------------------|------------|
+| Trial | 48 horas | 7 días |
+| Basic | 24 horas | 5 días |
+| Pro | 12 horas | 3 días |
+| Enterprise | 4 horas | 1 día |
+
+SLA para prioridades:
+- Crítica: Primera respuesta en 1 hora (todos los planes)
+- Alta: Reducir tiempos a la mitad
+- Media: SLA estándar
+- Baja: SLA extendido
+
+Alertas de SLA:
+- 75% del tiempo transcurrido: Alerta amarilla
+- 90% del tiempo: Alerta naranja + notificar supervisor
+- 100% (violación): Alerta roja + escalamiento automático
+- Registro de todas las violaciones de SLA para análisis
+
+RF-ADMIN-070: Templates de Respuesta (Snippets)
+Respuestas pre-definidas para casos comunes:
+
+Crear template:
+- Nombre corto (ej: "reset-password")
+- Asunto default (opcional)
+- Contenido (markdown)
+- Variables dinámicas: {{customer_name}}, {{company_name}}, etc.
+- Categoría
+- Adjuntos default
+
+Usar template:
+- Al componer respuesta, escribir "/" + nombre
+- O seleccionar de lista
+- Sistema inserta contenido
+- Reemplaza variables automáticamente
+- Agente puede editar antes de enviar
+
+Templates comunes:
+- "Cómo resetear contraseña"
+- "Problema de pago - actualizar método"
+- "Feature no disponible en tu plan"
+- "Reportar bug - información requerida"
+- "Ticket resuelto - cierre"
+
+RF-ADMIN-071: Base de Conocimientos (Knowledge Base)
+Sistema de artículos de ayuda:
+
+Para clientes (público):
+- Categorías:
+  - Primeros Pasos
+  - Inventario
+  - Ventas
+  - Contabilidad
+  - Nómina
+  - Preguntas Frecuentes
+  - Solución de Problemas
+- Por cada artículo:
+  - Título
+  - Contenido (markdown, con imágenes)
+  - Videos embebidos (YouTube/Vimeo)
+  - Categoría
+  - Tags
+  - Visibilidad (público/privado)
+  - Estado (publicado/borrador)
+  - Última actualización
+- Funcionalidades:
+  - Búsqueda full-text
+  - Artículos relacionados
+  - "¿Te fue útil este artículo?" (sí/no)
+  - Contador de vistas
+  - Comentarios (opcional)
+
+Para equipo interno (privado):
+- Runbooks: Procedimientos internos
+- Scripts de solución de problemas
+- Información técnica
+- Solo visible para equipo DevCorp
+
+RF-ADMIN-072: Gestión de Knowledge Base
+Desde admin:
+
+Crear artículo:
+- Editor WYSIWYG
+- Upload de imágenes
+- Embed de videos
+- Syntax highlighting para código
+- Previsualización
+
+Editar artículo
+Archivar (no eliminar)
+Organizar en categorías (drag & drop)
+Destacar artículos importantes
+
+Métricas por artículo:
+- Vistas totales
+- Vistas únicas
+- % de utilidad (likes/dislikes)
+- Tiempo promedio de lectura
+- Tickets que enlazaron a este artículo
+
+Artículos más vistos
+Artículos menos útiles (candidatos a mejorar)
+
+RF-ADMIN-073: Vinculación de Tickets con KB
+Al responder ticket:
+- Opción de enlazar artículo relevante
+- Cliente recibe link en la respuesta
+- Sistema registra:
+  - Qué artículo resolvió qué tipo de problema
+  - Efectividad de artículos
+
+Al cerrar ticket:
+- Sugerir crear artículo de KB si es problema común
+- Opción de convertir respuesta en artículo
+
+RF-ADMIN-074: Chat en Vivo (Opcional)
+Integración de chat en tiempo real:
+- Widget en portal del cliente
+- Cliente inicia chat
+- Entra a cola de chats
+- Agente disponible toma el chat
+- Conversación en tiempo real
+- Typing indicators
+- Adjuntos
+- Emojis
+
+Al finalizar:
+- Opción de convertir en ticket (si no se resolvió)
+- Guardar transcripción
+- Enviar transcripción al cliente por email
+
+Horario de atención:
+- Dentro de horario: Chat activo
+- Fuera de horario: Formulario para crear ticket
+
+RF-ADMIN-075: Satisfacción del Cliente (CSAT)
+Al cerrar o resolver ticket:
+- Email automático con encuesta:
+  - "¿Se resolvió tu problema?" (Sí/No)
+  - "Califica la atención recibida" (1-5 estrellas)
+  - "¿Qué podríamos mejorar?" (texto opcional)
+
+Respuestas se registran
+Métricas:
+- CSAT promedio (% de satisfacción)
+- CSAT por agente
+- CSAT por categoría
+- Evolución en el tiempo
+
+Alertas:
+- Calificación negativa (≤2 estrellas): Notificar a supervisor
+- Tendencia negativa de agente: Review
+
+RF-ADMIN-076: Reportes de Soporte
+Reportes disponibles:
+
+Resumen de soporte (mensual):
+- Tickets creados vs cerrados
+- Tiempo promedio de respuesta
+- Tiempo promedio de resolución
+- SLA compliance (%)
+- CSAT promedio
+- Top 10 problemas
+
+Performance de agentes:
+- Tickets resueltos por agente
+- Tiempos promedio por agente
+- CSAT por agente
+- Violaciones de SLA
+- Comparativa entre agentes
+
+Análisis de categorías:
+- Volumen por categoría
+- Tiempo de resolución por categoría
+- Tasa de resolución en primera respuesta
+
+Tendencias:
+- Tipos de problemas emergentes
+- Picos de volumen (horas/días)
+- Estacionalidad
+
+Exportación a PDF/Excel
+
+================================================================================
+MÓDULO 7: DISTRIBUCIÓN DE APPS
+================================================================================
+
+7.1 Gestión de Releases
+
+RF-ADMIN-077: Dashboard de Distribución
+Vista de releases de apps:
+
+Apps gestionadas:
+- NexFlow Business (Empresarial)
+  - Android
+  - iOS
+  - Windows
+  - macOS
+  - Linux
+- NexFlow Client (Cliente Final)
+  - Android
+  - iOS
+  - Web (se actualiza automáticamente)
+
+Por cada plataforma:
+- Versión actual en producción
+- Versión en beta (si existe)
+- Última actualización
+- Número de descargas
+- Usuarios activos
+
+RF-ADMIN-078: Upload de Nueva Versión
+Para subir nueva release:
+
+Seleccionar app (Business o Client)
+Seleccionar plataforma
+
+Información de la versión:
+- Número de versión: (semantic versioning: 2.1.3)
+- Tipo de release:
+  - Major (cambios grandes, breaking)
+  - Minor (nuevas features)
+  - Patch (bug fixes)
+- Canal de distribución:
+  - Production (público general)
+  - Beta (testers)
+  - Alpha (interno DevCorp)
+- Release notes (markdown):
+  - Nuevas características
+  - Mejoras
+  - Correcciones de bugs
+  - Problemas conocidos
+- Fecha de release: Hoy o programar
+- Obligatoria: Sí/No (fuerza actualización)
+
+Upload de archivo:
+- Android: .apk o .aab
+- iOS: .ipa (o link a TestFlight/App Store)
+- Windows: .exe (installer)
+- macOS: .dmg
+- Linux: .AppImage o .deb
+- Validaciones:
+  - Tamaño máximo (configurable, ej: 500MB)
+  - Formato correcto
+  - Nombre de archivo con versión
+
+Metadata:
+- Tamaño del archivo (calculado)
+- Checksum (MD5/SHA256) para verificación
+- Build number (auto-incremental)
+
+Confirmar upload
+Al confirmar:
+- Sube archivo a Supabase Storage
+- Genera URL pública o firmada (temporal)
+- Registra en tabla `app_versions`
+- Genera notificación (si hay que avisar a clientes)
+- Actualiza dashboard
+
+RF-ADMIN-079: Listado de Versiones
+Por cada app y plataforma:
+Tabla con historial de versiones:
+- Versión
+- Canal (prod/beta/alpha)
+- Fecha de release
+- Tamaño
+- Descargas
+- Estado (activa, archivada)
+- Acciones (descargar, ver release notes, archivar, eliminar)
+
+Ordenar por fecha (más reciente arriba)
+Filtrar por canal
+
+RF-ADMIN-080: Detalle de Versión
+Vista completa:
+
+Información general
+Release notes (formatted)
+
+Archivo:
+- Nombre
+- Tamaño
+- Checksum
+- URL de descarga (con botón copiar)
+
+Estadísticas:
+- Descargas totales
+- Descargas por día (gráfico)
+- Clientes que la tienen instalada (si reportan)
+- Crashes reportados (si hay telemetría)
+
+Canal y visibilidad
+Fecha de publicación
+Publicada por (usuario DevCorp)
+
+Acciones:
+- Descargar archivo
+- Copiar URL pública
+- Cambiar a otro canal (promover beta → prod)
+- Archivar
+- Eliminar (con confirmación)
+
+RF-ADMIN-081: Portal de Descargas Público
+Página pública: nexflow.app/downloads
+
+Mostrar versiones de producción
+Por app (Business / Client):
+- Descripción breve
+- Versión actual
+- Fecha de última actualización
+- Release notes (colapsable)
+- Botones de descarga por plataforma:
+  - 🤖 Android (descarga directa APK)
+  - 🍎 iOS (link a App Store)
+  - 🪟 Windows (descarga EXE)
+  - 🍎 macOS (descarga DMG)
+  - 🐧 Linux (descarga AppImage)
+- Requisitos del sistema
+- Instrucciones de instalación
+
+FAQ sobre instalación
+Link a soporte
+
+RF-ADMIN-082: Portal de Descargas Privado (para clientes)
+Desde portal del cliente empresarial:
+
+Sección "Descargar Aplicaciones"
+Mostrar solo apps relevantes para ese cliente:
+- Si es cliente Enterprise: Acceso a beta opcional
+- Si es trial/basic: Solo producción
+
+Botones de descarga
+Historial de descargas del cliente
+Auto-update check (si app lo soporta)
+
+RF-ADMIN-083: Distribución en Stores
+
+Android (Google Play):
+- Link a Play Store desde portal
+- Estadísticas de Play Console (manual)
+- Notas sobre proceso de publicación
+
+iOS (App Store):
+- Link a App Store
+- TestFlight para betas
+- Notas sobre Apple Review process
+
+RF-ADMIN-084: Notificaciones de Actualización
+Al publicar nueva versión:
+
+Si es major/minor: Notificar a todos los clientes
+  - Email: "Nueva versión disponible de NexFlow Business"
+  - Notificación in-app
+  - Banner en portal del cliente
+
+Si es patch: Notificación silenciosa (solo in-app)
+
+Si es obligatoria: Forzar actualización
+  - App muestra modal al abrir
+  - "Versión obsoleta. Actualiza para continuar."
+  - Botón "Actualizar Ahora" → descarga
+
+RF-ADMIN-085: Auto-Update (Futuro)
+Mecanismo de actualización automática:
+
+App verifica versión al iniciar
+Compara con API: GET /api/v1/versions/check?platform=android&current=2.1.2
+
+Respuesta:
+  - {update_available: true, latest_version: "2.1.3", mandatory: false, download_url: "..."}
+
+Si hay actualización:
+  - Notificar al usuario
+  - Opción de "Actualizar Ahora" o "Después"
+  - Si es obligatoria: Bloquear uso hasta actualizar
+
+Descarga e instala (según plataforma)
+
+RF-ADMIN-086: Rollback de Versión
+Si nueva versión tiene bugs críticos:
+
+Desde detalle de versión problemática
+Botón "Rollback"
+Confirmación:
+  - ⚠️ "Esto marcará la versión anterior como actual"
+  - ⚠️ "Los clientes recibirán notificación"
+
+Al confirmar:
+  - Versión actual se marca como "Retirada"
+  - Versión anterior se marca como "Actual"
+  - Se envía notificación a clientes
+  - "Por favor actualiza a la versión 2.1.2 (estable)"
+
+RF-ADMIN-087: Changelog Público
+Página pública: nexflow.app/changelog
+
+Listado de todas las versiones (últimas primeras)
+
+Por cada versión:
+- Número de versión
+- Fecha de release
+- Release notes (formatted)
+- Plataformas afectadas
+
+Feed RSS para seguir actualizaciones
+Filtrar por plataforma
+Buscar en changelog
+
+RF-ADMIN-088: Reportes de Distribución
+- Descargas por versión
+- Descargas por plataforma
+- Adopción de versiones (% de usuarios en cada versión)
+- Tiempo promedio de actualización (cuánto tardan usuarios en actualizar)
+- Tasa de actualización (% que actualizó en X días)
+- Versiones en uso actualmente (fragmentación)
+
+================================================================================
+MÓDULO 8: ANALYTICS Y MÉTRICAS SAAS
+================================================================================
+
+8.1 Dashboard Ejecutivo
+
+RF-ADMIN-089: Vista General de Métricas de Negocio
+Dashboard principal para founders/executives:
+
+Sección: Métricas de Ingresos
+
+MRR (Monthly Recurring Revenue):
+- Valor actual
+- Crecimiento vs mes anterior ($, %)
+- Gráfico de evolución (12 meses)
+- Desglose:
+  - New MRR (nuevos clientes)
+  - Expansion MRR (upgrades)
+  - Contraction MRR (downgrades)
+  - Churned MRR (cancelaciones)
+  - Net New MRR (new + expansion - contraction - churned)
+
+ARR (Annual Recurring Revenue):
+- MRR × 12
+- Proyección
+
+ARPU (Average Revenue Per User):
+- MRR total / # clientes
+- Por plan
+- Tendencia
+
+Sección: Métricas de Clientes
+
+Total de clientes:
+- Activos
+- En trial
+- Cancelados (lifetime)
+
+Nuevos clientes este mes:
+- Número
+- Tasa de crecimiento
+- Por canal de adquisición
+
+Churn Rate:
+- % de clientes que cancelaron este mes
+- Customer churn vs Revenue churn
+- Gráfico de tendencia
+- Comparativa con industry benchmark
+
+LTV (Lifetime Value):
+- Valor promedio de un cliente durante su vida
+- Fórmula: ARPU / Churn Rate (simplified)
+- Por plan
+
+Retention Rate:
+- % de clientes que renovaron
+- Cohortes de retención (gráfico)
+- Retención por mes de adquisición
+
+Sección: Métricas de Adquisición
+
+CAC (Customer Acquisition Cost):
+- (Gastos de Marketing + Ventas) / Nuevos Clientes
+- Por canal
+- Tendencia
+
+LTV / CAC Ratio:
+- Ideal: > 3
+- Por plan
+- Alerta si < 1 (no rentable)
+
+Payback Period:
+- Meses para recuperar CAC
+- Ideal: < 12 meses
+
+Trial to Paid Conversion Rate:
+- % de trials que se convirtieron en pagos
+- Por plan destino
+- Tendencia
+
+Sección: Métricas de Producto
+
+DAU (Daily Active Users):
+- Usuarios que usaron el sistema hoy
+- Gráfico de 30 días
+
+MAU (Monthly Active Users):
+- Usuarios únicos del mes
+
+DAU/MAU Ratio:
+- Stickiness del producto
+- Ideal: > 20%
+
+Engagement:
+- Sesiones promedio por usuario
+- Duración promedio de sesión
+- Features más usadas
+
+Transacciones procesadas:
+- Total del mes
+- Promedio por cliente
+- Crecimiento
+
+Sección: Salud del Negocio
+
+Burn Rate: Gasto mensual
+Runway: Meses de operación con efectivo actual
+Gross Margin: (MRR - Costos Directos) / MRR
+Quick Ratio: (New MRR + Expansion) / (Contraction + Churned)
+  - Ideal: > 4
+
+RF-ADMIN-090: Gráficos Interactivos
+Todos los gráficos son interactivos:
+- Hover para ver valores exactos
+- Zoom in/out
+- Filtrar por rango de fechas
+- Exportar como imagen (PNG)
+- Exportar datos (CSV)
+- Comparar períodos (este mes vs mes pasado)
+
+RF-ADMIN-091: Cohortes de Clientes
+Análisis de cohortes:
+
+Tabla de retención por mes de adquisición
+
+| Mes Adq. | Mes 0 | Mes 1 | Mes 2 | Mes 3 | ... | Mes 12 |
+|----------|-------|-------|-------|-------|-----|--------|
+| Ene 2026 | 100%  | 95%   | 92%   | 88%   | ... | 75%    |
+| Feb 2026 | 100%  | 93%   | 90%   | ...   | ... | ...    |
+
+Visualización con heatmap (colores)
+Insights: ¿Qué cohortes tienen mejor retención?
+
+RF-ADMIN-092: Análisis de Churn
+Deep dive en cancelaciones:
+
+Churn rate por segmento:
+- Por plan (Basic cancela más que Pro?)
+- Por industria
+- Por tamaño de empresa
+- Por región
+
+Motivos de cancelación:
+- Gráfico de torta
+- Top 5 motivos
+
+Timing de cancelación:
+- ¿En qué mes cancelan más? (mes 1, 3, 6?)
+- Churn curve
+
+Valor perdido:
+- MRR perdido por churn este mes
+- LTV de clientes que cancelaron
+
+Predicción de churn:
+- Score de riesgo por cliente (machine learning futuro)
+- Clientes en riesgo alto (lista)
+
+RF-ADMIN-093: Análisis de Crecimiento
+
+Tasa de crecimiento mensual (MoM):
+- MRR growth %
+- Clientes growth %
+
+Comparativa YoY:
+- Este mes vs mismo mes año anterior
+
+Proyecciones:
+- MRR en 3, 6, 12 meses
+- Escenarios: Optimista, Realista, Pesimista
+- Basado en tendencias históricas
+
+Rule of 40:
+- Growth Rate % + Profit Margin %
+- Benchmark de SaaS saludables
+
+RF-ADMIN-094: Análisis por Plan
+Comparativa entre planes:
+
+- Distribución de clientes por plan
+- MRR por plan
+- Churn rate por plan
+- LTV por plan
+- ARPU por plan
+- Upgrade/Downgrade flows:
+  - Cuántos clientes hicieron upgrade
+  - De qué plan a qué plan
+  - Cuánto tiempo tardaron en upgrade
+
+RF-ADMIN-095: Análisis de Canales de Adquisición
+
+Clientes por canal:
+- Orgánico (SEO)
+- Paid (Google Ads, Facebook Ads)
+- Referidos
+- Ventas directas
+- Partnerships
+- Eventos
+- Otros
+
+CAC por canal
+LTV por canal
+
+ROI por canal: (LTV - CAC) / CAC
+Mejor canal = mayor ROI
+
+RF-ADMIN-096: Reportes Exportables
+Generar reportes en PDF:
+- Reporte ejecutivo mensual
+- Reporte trimestral para board
+- Reporte anual
+- Contenido personalizable
+- Branding de DevCorp
+- Gráficos embebidos
+- Envío automático por email a stakeholders
+
+================================================================================
+9. COMUNICACIÓN ENTRE PLATAFORMAS
+================================================================================
+
+9.1 Arquitectura de Comunicación
+
+COMUNICACIÓN ENTRE PLATAFORMAS
+
+NEXFLOW ADMIN (Esta App) <-> NEXFLOW BUSINESS (Cliente ERP)
+
+Event Bus (Redis Pub/Sub)
+
+SHARED SERVICES LAYER:
+- Tenant Service
+- License Service
+- Billing Service
+- Support Service
+- Analytics Service
+
+API REST / WebSocket
+
+NEXFLOW CLIENT APP (Portal B2B)
+
+API REST
+
+PUBLIC WEBSITE (Marketing/Landing)
+
+Webhook
+
+EXTERNAL SERVICES:
+- Payment Gateways
+- Email Services
+- SMS Services
+- Analytics Tools
+
+9.2 Eventos del Sistema (Event Bus)
+
+Eventos de Licencia:
+{
+  "event": "license_activated",
+  "tenant_id": "queseria_dg_001",
+  "license_id": "LIC-2026-123456",
+  "plan": "pro",
+  "activated_by": "admin@devcorp.com",
+  "timestamp": "2026-01-15T10:30:00Z"
+}
+
+Eventos de Facturación:
+{
+  "event": "payment_received",
+  "tenant_id": "queseria_dg_001",
+  "invoice_id": "INV-2026-789012",
+  "amount": 299000,
+  "currency": "COP",
+  "payment_method": "credit_card",
+  "status": "success",
+  "timestamp": "2026-01-15T14:20:00Z"
+}
+
+Eventos de Soporte:
+{
+  "event": "ticket_created",
+  "tenant_id": "queseria_dg_001",
+  "ticket_id": "SUP-2026-345678",
+  "priority": "high",
+  "category": "technical",
+  "subject": "Error en cálculo de inventario",
+  "timestamp": "2026-01-15T16:45:00Z"
+}
+
+9.3 APIs y Endpoints
+
+API REST para NexFlow Business:
+
+GET /api/v1/admin/tenants/{tenant_id}/metrics
+→ Retorna métricas de uso del cliente
+
+POST /api/v1/admin/tenants/{tenant_id}/suspend
+→ Suspende acceso del cliente
+
+PUT /api/v1/admin/tenants/{tenant_id}/limits
+→ Actualiza límites de licencia
+
+GET /api/v1/admin/invoices/{tenant_id}
+→ Lista facturas del cliente
+
+POST /api/v1/admin/support/tickets
+→ Crea ticket de soporte para cliente
+
+Webhooks para comunicación bidireccional:
+- NexFlow Business → Admin: Reporte de uso, errores críticos
+- Admin → NexFlow Business: Cambios de licencia, actualizaciones
+- Admin → Client Portal: Actualizaciones de pedidos, estados
+
+9.4 Flujos de Comunicación Críticos
+
+Flujo 1: Activación de Licencia
+1. Admin activa licencia en NexFlow Admin
+2. License Service publica evento "license_activated"
+3. Tenant Service actualiza estado del cliente
+4. Notification Service envía email al cliente
+5. NexFlow Business recibe evento y habilita acceso
+6. Analytics Service registra métrica
+
+Flujo 2: Pago de Factura
+1. Cliente paga factura (pasarela externa)
+2. Payment Gateway envía webhook a Billing Service
+3. Billing Service valida y actualiza estado
+4. Evento "payment_received" se publica
+5. License Service extiende período si aplica
+6. Notification Service confirma al cliente
+7. Analytics Service actualiza métricas financieras
+
+Flujo 3: Ticket Crítico
+1. Cliente crea ticket con prioridad "crítica"
+2. Support Service recibe y evalúa
+3. Evento "critical_ticket_created" se dispara
+4. Notification Service alerta a equipo de soporte
+5. Dashboard de Admin muestra alerta roja
+6. Si SLA se acerca a vencer, se escala automáticamente
+
+================================================================================
+10. SEGURIDAD Y PERMISOS
+================================================================================
+
+10.1 Permisos Granulares por Rol
+
+| Módulo | Super Admin | Sales Manager | Support Agent | Finance Manager | DevOps |
+|--------|-------------|---------------|---------------|-----------------|--------|
+| Clientes | CRUD | CRU | R | R | R |
+| Licencias | CRUD | CRU | R | R | R |
+| Facturación | CRUD | R | R | CRUD | R |
+| Soporte | CRUD | R | CRUD | R | R |
+| Métricas | R | R | R | R | R |
+| Configuración | CRUD | R | R | R | CRU |
+| Monitoreo | R | R | R | R | CRUD |
+| Backups | CRUD | R | R | R | CRUD |
+
+10.2 Auditoría Completa
+
+RF-ADMIN-101: Log de Auditoría Admin
+Todas las acciones se registran con:
+- Usuario que realizó la acción
+- Rol del usuario
+- IP origen
+- Timestamp exacto
+- Acción específica
+- Recurso afectado
+- Valores antes/después (para cambios)
+- Resultado (éxito/error)
+
+RF-ADMIN-102: Reportes de Auditoría
+- Por usuario: Todas las acciones de un admin
+- Por recurso: Historial de un cliente/licencia
+- Por período: Actividad diaria/semanal/mensual
+- Por tipo: Solo modificaciones, solo accesos, etc.
+
+================================================================================
+11. MÓTRICAS Y KPIs ESPECÍFICOS DE ADMIN
+================================================================================
+
+11.1 Dashboard de Admin Específico
+
+RF-ADMIN-103: Métricas de Eficiencia Operativa
+- Tiempo promedio de onboarding: X días
+- Tickets resueltos por agente: Ranking
+- Facturas generadas por día: XX
+- Tasa de éxito de pagos: XX%
+- Tiempo de respuesta de soporte: X horas
+
+RF-ADMIN-104: Alertas Operativas
+- Sistema: Todos los servicios operational
+- Backups: 2 archivos pendientes de backup
+- Email: Queue con 150 emails pendientes
+- Pagos: 3 facturas vencidas por cobrar
+- Soporte: 5 tickets críticos sin resolver
+
+RF-ADMIN-105: Métricas de Cliente Único
+Por cada cliente, mostrar en su perfil:
+- Health Score: 0-100 (basado en uso, pagos, tickets)
+- Churn Risk: Bajo/Medio/Alto
+- Upsell Probability: % basado en uso de límites
+- NPS Trend: Evolución del Net Promoter Score
+
+================================================================================
+FIN DEL DOCUMENTO DE REQUISITOS FUNCIONALES
+================================================================================
+Documento preparado para NexFlow Admin v1.0
+Desarrollado por: Devin Polanco Romero - DevCorp
+Enero 2026

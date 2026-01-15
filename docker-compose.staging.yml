@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-qflow_pro_staging}
+    volumes:
+      - staging_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - qflow-staging-net
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - staging_redis_data:/data
+    networks:
+      - qflow-staging-net
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-qflow_pro_staging}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-staging-secret}
+    ports:
+      - "8080:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - qflow-staging-net
+    restart: always
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: http://api:3000
+    ports:
+      - "8081:3001"
+    networks:
+      - qflow-staging-net
+    restart: always
+
+  portal:
+    build:
+      context: .
+      dockerfile: apps/portal/Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: http://api:3000
+    ports:
+      - "8082:3002"
+    networks:
+      - qflow-staging-net
+    restart: always
+
+volumes:
+  staging_postgres_data:
+  staging_redis_data:
+
+
+networks:
+  qflow-staging-net:
+    driver: bridge

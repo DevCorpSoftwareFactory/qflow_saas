@@ -1,0 +1,5714 @@
+ANÁLISIS DETALLADO ACTUALIZADO - QUESERA D&G
+
+MODELO DE NEGOCIO ACTUALIZADO:
+
+Estructura Organizacional:
+
+Sucursales independientes: Cada sucursal opera de forma autónoma (inventario, contabilidad, nómina propios)
+Suministros corporativos: El dueño adquiere ciertos productos (ej: queso) y los distribuye a las sucursales
+Modelo de atención: Una persona por sucursal (familiar), sin registro transaccional de ventas individuales
+Control financiero: Basado en cuadre diario (efectivo + créditos + salidas + pagos online)
+
+
+REQUISITOS FUNCIONALES ACTUALIZADOS Y AMPLIADOS:
+
+1. MÓDULO: GESTIÓN DE COMPRAS Y PROVEEDORES (ACTUALIZADO)
+
+1.1 Recepción de Mercancía con Verificación
+
+Proceso de Recepción Parcial:
+
+RF001: Al recibir mercancía, mostrar la orden de compra completa
+
+RF002: Por cada producto en la orden, permitir marcar:
+
+✅ Recibido: Cantidad recibida
+⚠️ Recibido parcial: Cantidad recibida menor a la ordenada
+❌ No recibido: No llegó el producto
+🔄 Pendiente: Aún no se ha verificado
+
+
+RF003: Registrar diferencias: Faltantes, sobrantes, productos dañados
+
+RF004: Campo de observaciones por producto (ej: "Llegó en mal estado", "Diferente presentación")
+
+Cálculo Automático del Total a Pagar:
+
+RF005: Calcular automáticamente: Total a Pagar = Σ (Cantidad Recibida × Precio Unitario)
+
+RF006: Mostrar comparativa:
+
+Total ordenado original
+Total recibido real
+Diferencia ($)
+
+
+RF007: Desglose por producto:
+
+Producto | Ordenado | Recibido | Precio Unit. | Subtotal Ordenado | Subtotal Recibido
+
+
+RF008: Calcular impuestos sobre lo recibido
+
+RF009: Total final a pagar (suma de subtotales recibidos + impuestos)
+
+Registro de Factura Ajustada:
+
+RF010: Generar/registrar factura de compra con los valores reales recibidos
+
+RF011: Si la factura del proveedor difiere de lo recibido, marcar discrepancia
+
+RF012: Solicitar nota de crédito al proveedor por faltantes
+
+RF013: Vincular factura ajustada con la orden de compra original
+
+Creación de Lotes por Productos Recibidos:
+
+RF014: Crear lotes de inventario solo para los productos efectivamente recibidos
+
+RF015: Asociar cada lote con número de factura real del proveedor
+
+RF016: Si recepción es parcial, crear lote solo con la cantidad recibida
+
+RF017: Registrar productos pendientes de recibir (backorder)
+
+Estados de Orden de Compra Ampliados:
+
+RF018: Borrador: En creación
+
+RF019: Enviada: Enviada al proveedor, esperando confirmación
+
+RF020: Confirmada: Proveedor confirmó, esperando entrega
+
+RF021: Recibida parcial: Se recibió parte de la orden, hay productos pendientes
+
+RF022: Recibida total: Se recibió todo lo ordenado
+
+RF023: Recibida con diferencias: Se recibió todo pero con cantidades diferentes
+
+RF024: Cancelada: Orden cancelada
+
+RF025: Permitir múltiples recepciones parciales para una misma orden
+
+
+2. MÓDULO: GESTIÓN MULTI-SUCURSAL INDEPENDIENTE
+
+2.1 Arquitectura de Sucursales
+
+Principio de Independencia:
+
+RF026: Cada sucursal es una entidad operativa independiente
+
+RF027: Cada sucursal tiene su propio:
+
+Inventario separado
+Contabilidad separada
+Nómina separada
+Caja separada
+Clientes separados (opcional: pueden compartirse)
+Proveedores separados (opcional: pueden compartirse)
+
+
+
+Gestión de Sucursales:
+
+RF028: Crear nueva sucursal con: Nombre, código, dirección, teléfono, responsable
+
+RF029: Activar/desactivar sucursales
+
+RF030: Asignar usuarios/empleados a sucursales específicas
+
+RF031: Configuración independiente por sucursal:
+
+Numeración de facturas propia
+Precios de venta propios (pueden variar por sucursal)
+Métodos de pago aceptados
+Horarios de operación
+
+
+
+Control Corporativo:
+
+RF032: Vista consolidada para el dueño/administrador general:
+
+Inventario consolidado (suma de todas las sucursales)
+Ventas consolidadas
+Cuentas por cobrar consolidadas
+Cuentas por pagar consolidadas
+Rentabilidad por sucursal
+
+
+RF033: Comparativas entre sucursales
+
+RF034: Reportes individuales por sucursal
+
+RF035: Reportes consolidados corporativos
+
+Permisos por Sucursal:
+
+RF036: Usuario puede tener acceso a una o múltiples sucursales
+
+RF037: Empleado de sucursal A solo ve/opera datos de sucursal A
+
+RF038: Administrador general accede a todas las sucursales
+
+RF039: Dueño tiene vista global y control total
+
+
+3. MÓDULO: SUMINISTROS CORPORATIVOS DEL DUEÑO
+
+3.1 Gestión de Suministros del Dueño
+
+Concepto:
+El dueño adquiere ciertos productos (ej: queso) directamente y los distribuye a las sucursales. Esto no es una compra de la sucursal, sino un suministro interno.
+
+Registro de Adquisición del Dueño:
+
+RF040: Módulo especial: "Compras Corporativas del Dueño"
+
+RF041: Registrar compra realizada por el dueño:
+
+Producto, cantidad, precio de compra, proveedor, fecha
+Total invertido por el dueño
+
+
+RF042: Estas compras NO ingresan directamente al inventario de ninguna sucursal
+
+RF043: Se mantienen en un "Inventario Corporativo" o "Inventario del Dueño"
+
+Distribución a Sucursales:
+
+RF044: Crear orden de suministro interno del dueño a sucursal(es)
+
+RF045: Seleccionar sucursal destino
+
+RF046: Seleccionar productos y cantidades a suministrar
+
+RF047: Establecer precio de transferencia (puede ser costo, costo + margen, o precio especial)
+
+RF048: Generar documento de transferencia interna
+
+RF049: Al confirmar transferencia:
+
+Disminuye del inventario corporativo del dueño
+Aumenta en inventario de la sucursal
+
+
+RF050: Crear lote en la sucursal vinculado a "Suministro Corporativo"
+
+Control de Cuentas Internas:
+
+RF051: Generar cuenta por pagar de la sucursal hacia el dueño/corporativo
+
+RF052: La sucursal debe pagar al dueño por los suministros recibidos
+
+RF053: Registrar pagos de sucursal a corporativo
+
+RF054: Estado de cuenta: Cuánto debe cada sucursal al dueño por suministros
+
+RF055: Alertas de sucursales con deuda pendiente al corporativo
+
+Reportes de Suministros Corporativos:
+
+RF056: Inversión total del dueño en suministros
+
+RF057: Suministros distribuidos por sucursal
+
+RF058: Cuentas por cobrar del dueño a sucursales
+
+RF059: Rentabilidad del dueño en suministros (precio transferencia vs costo)
+
+
+4. MÓDULO: CONTROL DE CAJA DIARIO (SIN REGISTRO DE VENTAS INDIVIDUALES)
+
+4.1 Modelo Operativo
+
+Concepto:
+No se registra cada venta individual. Al final del día se realiza un cuadre basado en:
+
+Efectivo contado
+Créditos otorgados en el día
+Salidas de dinero (gastos, pagos a proveedores)
+Pagos online (Nequi, transferencias)
+
+4.2 Apertura de Caja Diaria
+
+RF060: Registrar apertura de caja: Fecha, hora, empleado responsable, monto inicial en efectivo
+
+RF061: Una sola caja abierta por día por sucursal
+
+4.3 Registro de Créditos del Día
+
+Ventas a Crédito sin Factura Individual:
+
+RF062: Durante el día, registrar cada venta a crédito:
+
+Cliente (nombre o identificación rápida)
+Monto total del crédito
+Fecha
+Observaciones opcionales (productos vendidos de forma general)
+
+
+RF063: No se requiere detalle de productos vendidos (simplificado)
+
+RF064: Generar número de comprobante de crédito o ticket de crédito
+
+RF065: Entregar comprobante al cliente
+
+RF066: Acumular total de créditos otorgados en el día
+
+Trazabilidad de Créditos:
+
+RF067: Cada crédito tiene: Número único, cliente, monto, fecha, estado (pendiente/pagado)
+
+RF068: Lista de créditos pendientes de cobro
+
+RF069: Registrar pago de crédito:
+
+Fecha de pago, monto pagado, método (efectivo/online)
+
+
+RF070: Si pago es en efectivo, ingresa a caja
+
+RF071: Si pago es online, registrar en cuenta online
+
+RF072: Actualizar estado del crédito (pagado total, pagado parcial)
+
+RF073: Historial completo de cada crédito
+
+4.4 Registro de Salidas de Dinero (Egresos)
+
+Tipos de Salidas:
+
+Gastos operativos (servicios, insumos, transporte, etc.)
+Pagos a proveedores
+Retiros del dueño
+Otros egresos
+
+Registro de Salida:
+
+RF074: Registrar cada salida de dinero del día:
+
+Tipo de salida: Gasto operativo, Pago a proveedor, Retiro dueño, Otro
+Monto
+Método: Efectivo, Nequi, transferencia, otro
+Beneficiario/Concepto: A quién o para qué se pagará
+Fecha y hora
+Soporte: Opcional subir foto de recibo/factura
+Observaciones
+
+
+RF075: Si es pago a proveedor:
+
+Seleccionar proveedor
+Vincular con factura(s) de compra pendiente(s)
+Marcar factura como pagada total o parcial
+
+
+RF076: Si salida es en efectivo, disminuye el efectivo en caja
+
+RF077: Si salida es online, registrar en cuenta online correspondiente
+
+Trazabilidad de Salidas:
+
+RF078: Cada salida tiene número único y es rastreable
+
+RF079: Reportes de salidas por tipo, por período, por beneficiario
+
+RF080: Total de salidas del día
+
+RF081: Clasificación contable de las salidas (gasto, pago pasivo, etc.)
+
+4.5 Gestión de Pagos Online (Nequi, Transferencias, etc.)
+
+Cuentas Online:
+
+RF082: Registrar cuentas online de la sucursal:
+
+Tipo: Nequi, Bancolombia, Davivienda, etc.
+Número de cuenta, titular
+Saldo inicial
+
+
+RF083: Cada sucursal puede tener múltiples cuentas online
+
+Movimientos en Cuentas Online:
+
+RF084: Registrar ingresos online:
+
+Cliente pagará por Nequi/transferencia (venta al contado online o pago de crédito)
+Fecha, monto, referencia, cliente
+
+
+RF085: Registrar salidas online:
+
+Pagos a proveedores por transferencia
+Pago de servicios online
+Transferencias a otras cuentas
+
+
+RF086: Calcular saldo actual de cada cuenta online:
+
+Saldo = Saldo inicial + Ingresos online - Salidas online
+
+
+RF087: Conciliación bancaria: Comparar saldo calculado vs saldo real en la app
+
+Trazabilidad de Pagos Online:
+
+RF088: Cada movimiento online registrado con número de referencia
+
+RF089: Vincular pagos online de clientes con sus créditos/facturas
+
+RF090: Vincular pagos online a proveedores con sus facturas
+
+RF091: Reportes de movimientos por cuenta online
+
+4.6 Cierre de Caja Diario
+
+Proceso de Cierre:
+
+RF092: Al final del día, iniciar cierre de caja
+
+RF093: Conteo físico de efectivo:
+
+Ingresar cantidad de billetes y monedas por denominación
+Sistema calcula total efectivo contado
+
+
+RF094: Sistema calcula efectivo esperado:
+
+Efectivo esperado = Monto inicial + Cobros en efectivo del día - Salidas en efectivo del día
+Cobros en efectivo = Ventas de contado en efectivo + Pagos de créditos en efectivo
+NOTA: Como no se registran ventas individuales, el cálculo será:
+
+Efectivo esperado = Monto inicial + Créditos pagados en efectivo - Salidas en efectivo
+Problema identificado: Sin registro de ventas de contado, no se puede calcular efectivo esperado preciso
+
+
+
+
+
+Solución Propuesta para Ventas de Contado:
+
+RF095: Al cierre, ingresar estimado de ventas de contado en efectivo del día (ingreso manual por el empleado)
+
+RF096: Entonces: Efectivo esperado = Monto inicial + Ventas contado efectivo estimadas + Créditos pagados en efectivo - Salidas en efectivo
+
+RF097: Calcular diferencia: Efectivo contado - Efectivo esperado
+
+RF098: Si hay diferencia (sobrante/faltante), solicitar justificación
+
+RF099: Si diferencia > umbral permitido, requiere aprobación de supervisor/dueño
+
+Resumen del Cierre:
+
+RF100: Reporte de cierre con:
+
+Monto inicial en efectivo
+Estimado de ventas contado en efectivo
+Créditos otorgados (monto total)
+Créditos cobrados en efectivo
+Salidas en efectivo
+Efectivo esperado
+Efectivo contado
+Diferencia (sobrante/faltante)
+Ingresos online del día (por cuenta)
+Salidas online del día (por cuenta)
+Total ventas estimadas del día (contado + créditos)
+Utilidad bruta estimada (si se puede calcular)
+
+
+
+Depósito Bancario:
+
+RF101: Registrar depósito bancario del efectivo
+
+RF102: Monto depositado, banco, número de referencia
+
+RF103: Efectivo restante en caja (si no se deposita todo)
+
+
+5. MÓDULO: CONTABILIDAD SIMPLIFICADA
+
+5.1 Registro Contable Diario
+
+Dado que no hay registro de ventas individuales, la contabilidad se basa en el cuadre diario:
+
+Asientos Automáticos del Cierre:
+
+RF104: Al cerrar caja, generar asientos contables:
+
+Ingresos: Ventas de contado (estimadas) + Cobros de créditos
+Cuentas por cobrar: Créditos otorgados
+Egresos: Salidas del día clasificadas (gastos, pagos a proveedores)
+Bancos/Cuentas online: Movimientos online
+Caja: Efectivo final
+
+
+
+Cuentas por Cobrar:
+
+RF105: Los créditos otorgados incrementan cuentas por cobrar
+
+RF106: Los cobros de créditos disminuyen cuentas por cobrar
+
+Cuentas por Pagar:
+
+RF107: Facturas de compra a proveedores incrementan cuentas por pagar
+
+RF108: Pagos a proveedores disminuyen cuentas por pagar
+
+Inventario:
+
+RF109: Compras de inventario incrementan activo inventario
+
+RF110: Estimación de costo de ventas basado en rotación promedio (simplificado)
+
+5.2 Reportes Financieros Básicos
+
+RF111: Estado de resultados mensual (ingresos estimados - gastos)
+
+RF112: Balance general (activos, pasivos, patrimonio)
+
+RF113: Flujo de efectivo (entradas y salidas reales de dinero)
+
+RF114: Reportes por sucursal y consolidados
+
+
+6. MÓDULO: PORTAL DEL CLIENTE CON CONTROL ESTRICTO
+
+6.1 Registro y Tipos de Cliente
+
+Tipos de Cliente:
+
+RF115: Definir tipos de cliente:
+
+Consumidor Final: Compra al por menor, ve precios minoristas
+Tienda/Negocio: Compra al por mayor, ve precios mayoristas
+VIP: Precios especiales, condiciones preferenciales
+Otros: Según necesidad del negocio
+
+
+
+Registro de Cliente:
+
+RF116: Cliente se registra en el portal con:
+
+Nombre, documento, teléfono, email, dirección
+Tipo de negocio (si aplica)
+Solicita tipo de cuenta (Consumidor / Tienda)
+
+
+RF117: Al registrarse, cliente queda con tipo "Pendiente de Aprobación"
+
+RF118: Notificación al administrador de nuevo registro
+
+RF119: Administrador revisa y aprueba tipo de cliente:
+
+Si es Consumidor Final → Aprueba como tal
+Si solicita Tienda → Verifica documentos, valida que sea negocio real, aprueba o rechaza
+
+
+RF120: Cliente recibe notificación de aprobación/rechazo
+
+Control de Cambio de Tipo:
+
+RF121: Cliente NO puede cambiar su tipo desde el portal
+
+RF122: Si cliente desea cambiar tipo (ej: de Consumidor a Tienda):
+
+Solicita cambio desde su perfil con justificación y documentos
+Notificación a administrador
+Administrador aprueba o rechaza
+Cliente es notificado
+
+
+RF123: Solo usuarios con rol Administrador, Dueño o Vendedor autorizado pueden cambiar tipo de cliente
+
+6.2 Catálogo de Productos para Clientes
+
+Visualización Según Tipo:
+
+RF124: Cliente ve solo productos disponibles para su tipo
+
+RF125: Consumidor Final ve:
+
+Productos de venta al por menor
+Precios minoristas
+NO ve productos exclusivos de por mayor
+
+
+RF126: Cliente Tienda ve:
+
+Productos de venta al por mayor (pueden ser diferentes al por menor)
+Precios mayoristas
+Cantidades mínimas de pedido
+NO ve precios minoristas
+
+
+
+Funcionalidades del Catálogo:
+
+RF127: Búsqueda por nombre, código, categoría, marca
+
+RF128: Filtros:
+
+Por categoría (Lácteos, Avícola, Porcinos, etc.)
+Por marca
+Por disponibilidad (en stock, agotado)
+Por precio (rango)
+
+
+RF129: Agrupación:
+
+Agrupar por categoría
+Agrupar por marca
+Vista de lista o vista de tarjetas (grid)
+
+
+RF130: Mostrar por producto:
+
+Imagen, nombre, descripción
+Precio según tipo de cliente
+Disponibilidad (en stock / agotado / cantidad disponible)
+Unidad de medida
+
+
+RF131: Si producto está agotado, opción de "Notificarme cuando esté disponible"
+
+6.3 Creación de Pedido por el Cliente
+
+Proceso de Pedido:
+
+RF132: Cliente agrega productos al carrito de compras
+
+RF133: Seleccionar cantidad de cada producto
+
+RF134: Validar cantidades mínimas (si aplica para mayoristas)
+
+RF135: Sistema calcula subtotal automáticamente
+
+RF136: Si es cliente mayorista y el pedido incluye entrega:
+
+Seleccionar dirección de entrega
+Sistema calcula gastos de logística estimados (o se calculan después)
+
+
+RF137: Resumen del pedido:
+
+Productos, cantidades, precios, subtotales
+Gastos de envío (si aplica)
+Impuestos (si aplica)
+Total a pagar
+
+
+RF138: Cliente confirma pedido
+
+RF139: Sistema genera número de pedido único
+
+RF140: Estado inicial: "Solicitado"
+
+Generación Automática de Factura:
+
+RF141: Al confirmar pedido, sistema genera factura proforma o factura pendiente
+
+RF142: Factura incluye:
+
+Datos del cliente
+Productos solicitados
+Precios según tipo de cliente
+Gastos logísticos (si aplica)
+Total a pagar
+
+
+RF143: Factura con estado: "Pendiente de Pago"
+
+RF144: Cliente puede descargar factura en PDF
+
+RF145: Factura enviada automáticamente al email del cliente
+
+Notificación a la Sucursal:
+
+RF146: Al crear pedido, notificar a la sucursal correspondiente:
+
+Notificación push, email o dentro del sistema
+"Nuevo pedido #12345 de cliente Juan Pérez"
+
+
+RF147: Pedido aparece en módulo de "Gestión de Pedidos" de la sucursal
+
+6.4 Seguimiento del Pedido por el Cliente
+
+Estados del Pedido:
+
+RF148: Cliente ve estado de su pedido en tiempo real:
+
+Solicitado: Pedido enviado, esperando confirmación
+Confirmado: Sucursal confirmó el pedido
+En preparación: Sucursal está preparando el pedido
+Listo para entrega: Pedido listo para recoger o enviar
+En tránsito: Pedido en camino (si aplica entrega)
+Entregado: Pedido entregado al cliente
+Cancelado: Pedido cancelado
+
+
+RF149: Historial de cambios de estado con fecha y hora
+
+RF150: Notificaciones automáticas al cliente por email/SMS cuando cambie el estado
+
+Registro de Pago por el Cliente:
+
+RF151: Cliente puede registrar que realizó el pago desde su portal
+
+RF152: Formulario de registro de pago:
+
+Método de pago utilizado (Efectivo, Nequi, Transferencia, etc.)
+Fecha y hora del pago
+Monto pagado
+Referencia o número de transacción
+Comprobante de pago (opcional): Subir foto/PDF del comprobante
+Observaciones
+
+
+RF153: Al registrar pago:
+
+Estado del pedido NO cambia automáticamente
+Se crea "Solicitud de Aprobación de Pago"
+Pedido/Factura queda con estado: "Pago pendiente de verificación"
+
+
+RF154: Cliente recibe confirmación: "Tu pago ha sido registrado y está en proceso de verificación"
+
+
+7. MÓDULO: GESTIÓN DE PEDIDOS DE CLIENTES (PARA TRABAJADORES)
+
+7.1 Panel de Pedidos
+
+Vista de Pedidos:
+
+RF155: Lista de todos los pedidos con filtros:
+
+Por estado, por fecha, por cliente, por sucursal
+
+
+RF156: Vista detallada de cada pedido:
+
+Datos del cliente
+Productos solicitados
+Total
+Estado actual
+Historial de cambios
+
+
+RF157: Búsqueda rápida por número de pedido o nombre de cliente
+
+7.2 Gestión de Estados de Pedido
+
+Cambio de Estados:
+
+RF158: Trabajador puede cambiar estado del pedido:
+
+Solicitado → Confirmado
+Confirmado → En preparación
+En preparación → Listo para entrega
+Listo para entrega → En tránsito (si hay entrega)
+En tránsito → Entregado
+
+
+RF159: Al cambiar estado, registrar: fecha, hora, usuario que cambió
+
+RF160: Agregar observaciones al cambiar estado (ej: "Falta 1 producto, se enviará mañana")
+
+RF161: Notificación automática al cliente
+
+Gestión de Entrega:
+
+RF162: Si el pedido requiere entrega:
+
+Programar fecha y hora de entrega
+Asignar ruta y transporte
+Asignar responsable de entrega
+
+
+RF163: Registrar cuando sale para entrega
+
+RF164: Confirmar entrega exitosa
+
+RF165: Si hay problema en entrega, registrar novedad
+
+7.3 Gestión de Pago del Pedido
+
+Estados de Pago:
+
+RF166: Cada pedido tiene estado de pago:
+
+Pendiente de pago
+Pago registrado por cliente (en verificación)
+Pago verificado (pagado)
+Pago rechazado
+Pago parcial
+
+
+
+Notificación de Pago Registrado por Cliente:
+
+RF167: Cuando cliente registra pago, aparece notificación destacada en el panel de pedidos:
+
+🔔 "El cliente Juan Pérez registró un pago de $150.000 para el pedido #12345"
+Badge o indicador visual llamativo
+
+
+RF168: Pedido se destaca en la lista (ej: con color diferente o icono)
+
+RF169: Al abrir el pedido, ver sección de "Pago registrado por cliente" con:
+
+Método de pago
+Monto pagado
+Fecha y hora del registro
+Referencia
+Comprobante adjunto (si lo subió el cliente) - Botón para ver/descargar comprobante
+Observaciones del cliente
+
+
+
+Verificación y Aprobación de Pago:
+
+RF170: Trabajador/Dueño/Administrador puede:
+
+Aprobar el pago:
+
+Confirmar que se recibió el pago
+Estado de pago cambia a "Verificado/Pagado"
+Se registra automáticamente el cobro en contabilidad
+Si es pago en efectivo, se registra ingreso a caja
+Si es pago online, se registra en la cuenta online correspondiente
+Se vincula pago con factura del pedido (factura queda pagada)
+Notificación automática al cliente: "Tu pago ha sido verificado exitosamente. ¡Gracias!"
+
+
+Rechazar el pago:
+
+Razón de rechazo obligatoria
+Enviar mensaje al cliente explicando por qué no se verificó el pago
+Plantillas predefinidas:
+
+"No hemos recibido tu pago. Por favor verifica la referencia."
+"El monto recibido no coincide con el total del pedido."
+"El comprobante no corresponde a nuestra cuenta."
+Mensaje personalizado
+
+
+Cliente recibe notificación por email/SMS
+Estado de pago vuelve a "Pendiente de pago"
+Cliente puede volver a registrar el pago
+
+
+Solicitar más información:
+
+Enviar mensaje al cliente pidiendo aclaración o comprobante adicional
+
+
+
+
+
+Comunicación con el Cliente:
+
+RF171: Desde el pedido, opción de "Enviar mensaje al cliente"
+
+RF172: Plantillas de mensajes predefinidas:
+
+"Tu pedido está listo para recoger"
+"Tu pedido salió para entrega"
+"No hemos recibido tu pago, por favor verifica"
+"Hay un problema con tu pedido, contáctanos"
+
+
+RF173: Envío por email, SMS o notificación en la app/portal
+
+RF174: Historial de mensajes enviados al cliente
+
+Registro Manual de Pago (por Trabajador):
+
+RF175: Si el trabajador recibe el pago y olvidó marcarlo:
+
+Opción de "Registrar pago recibido"
+Seleccionar método de pago, monto, fecha, referencia
+Subir comprobante (opcional)
+Estado cambia directamente a "Pagado" (sin necesidad de aprobación)
+Se registra automáticamente en contabilidad
+
+
+
+7.4 Cancelación de Pedidos
+
+RF176: Trabajador/Cliente puede cancelar pedido (según permisos)
+
+RF177: Razón de cancelación obligatoria
+
+RF178: Si pedido ya estaba en preparación, liberar inventario reservado
+
+RF179: Si había pago adelantado, procesar reembolso
+
+RF180: Notificar al cliente de la cancelación
+
+
+8. MÓDULO: REPORTES Y NOTIFICACIONES
+
+8.1 Notificaciones Automáticas
+
+Para Trabajadores/Administradores:
+
+RF181: Nuevo pedido recibido
+
+RF182: Cliente registró un pago (destacado)
+
+RF183: Pedido próximo a fecha de entrega
+
+RF184: Inventario bajo de productos solicitados en pedidos
+
+RF185: Factura de proveedor próxima a vencer
+
+RF186: Nuevo registro de cliente pendiente de aprobación
+
+RF187: Solicitud de cambio de tipo de cliente
+
+Para Clientes:
+
+RF188: Pedido confirmado
+
+RF189: Cambio de estado del pedido
+
+RF190: Pago aprobado/verificado
+
+RF191: Pago rechazado (con motivo)
+
+RF192: Pedido listo para recoger/entregado
+
+RF193: Mensaje del negocio
+
+8.2 Reportes Operativos
+
+Reportes de Caja:
+
+RF194: Cierre de caja diario con todos los movimientos
+
+RF195: Reporte de créditos otorgados y pendientes
+
+RF196: Reporte de salidas de dinero clasificadas
+
+RF197: Movimientos de cuentas online
+
+RF198: Comparativa entre sucursales
+
+Reportes de Pedidos:
+
+RF199: Pedidos por estado
+
+RF200: Pedidos por cliente
+
+RF201: Pedidos con pago pendiente de verificación
+
+RF202: Pedidos entregados vs cancelados
+
+RF203: Tiempo promedio de procesamiento de pedidos
+
+Reportes Financieros:
+
+RF204: Ingresos estimados del día/mes
+
+RF205: Créditos por cobrar
+
+RF206: Cuentas por pagar a proveedores
+
+RF207: Estado de suministros corporativos
+
+RF208: Rentabilidad por sucursal
+
+
+DIAGRAMA DE FLUJOS CRÍTICOS:
+
+Flujo 1: Recepción de Compra con Verificación
+
+1. Llega mercancía del proveedor
+2. Buscar orden de compra correspondiente
+3. Por cada producto:
+   - Verificar cantidad recibida vs ordenada
+   - Marcar: Recibido / Parcial / No recibido
+4. Sistema calcula: Total a Pagar = Σ(Cant. Recibida × Precio)
+5. Registrar factura del proveedor con monto real
+6. Crear lotes de inventario solo para productos recibidos
+7. Generar cuenta por pagar al proveedor por el monto real
+
+Flujo 2: Cierre de Caja Sin Ventas Individuales
+
+1. Apertura: Registrar monto inicial
+2. Durante el día:
+   - Registrar cada crédito otorgado
+   - Registrar cada salida de dinero
+   - Registrar cobros de créditos
+   - Registrar pagos online
+3. Cierre:
+   - Ingresar ventas de contado estimadas
+   - Contar efectivo físico
+   - Sistema calcula: Efectivo Esperado = Inicial + Ventas estimadas + Cobros efectivo - Salidas efectivo
+   - Calcular diferencia: Efectivo Contado - Esperado
+   - Justificar si hay diferencia
+   - Resumen de movimientos online
+4. Generar asientos contables
+5. Cerrar caja
+
+12. MÓDULO: DEVOLUCIONES A PROVEEDORES
+12.1 Registro de Devolución
+Solicitud de Devolución:
+
+RF414: Crear devolución a proveedor:
+
+Factura de compra original
+Proveedor
+Productos a devolver
+Cantidad por producto
+Lote específico a devolver
+Motivo:
+
+Producto defectuoso
+Producto vencido
+Entrega incorrecta
+Cantidad incorrecta
+Otro
+
+
+Descripción detallada
+Fotos de evidencia
+
+
+RF415: Generar nota de devolución al proveedor
+RF416: Enviar nota por email/WhatsApp al proveedor
+
+12.2 Afectación al Inventario
+
+RF417: Disminuir del lote específico de la factura original
+RF418: Crear movimiento de inventario tipo "Devolución a proveedor"
+RF419: Estado del lote si se devuelve todo: Devuelto/Cerrado
+
+12.3 Ajuste Financiero
+Actualización de Factura:
+
+RF420: Opción de:
+
+Modificar factura original: Ajustar montos y cantidades
+Crear nota de crédito del proveedor: Mantener factura original, agregar nota crédito
+
+
+RF421: Recalcular total a pagar al proveedor
+
+Cuenta por Pagar:
+
+RF422: Actualizar saldo de la factura de compra
+RF423: Si factura ya estaba pagada:
+
+Crear cuenta por cobrar al proveedor (dinero a recuperar)
+Opciones:
+
+Reembolso: Proveedor devuelve el dinero
+Descuento en próxima compra: Se aplica crédito en siguiente pedido
+
+
+
+
+RF424: Registrar decisión tomada
+
+Nota de Crédito del Proveedor:
+
+RF425: Registrar nota de crédito emitida por el proveedor
+RF426: Vincular con factura original
+RF427: Aplicar crédito en próxima compra
+RF428: Historial de notas de crédito por proveedor
+
+12.4 Reportes
+
+RF429: Devoluciones realizadas por proveedor
+RF430: Productos más devueltos
+RF431: Impacto económico de devoluciones
+RF432: Créditos pendientes de aplicar por proveedor
+
+
+13. MÓDULO: CONTROL DE INVENTARIO FÍSICO
+13.1 Programación de Inventario
+
+RF433: Programar control de inventario:
+
+Fecha y hora programada
+Sucursal
+Responsable(s) asignado(s)
+Tipo: Total (todos los productos) o Parcial (categorías específicas)
+Frecuencia: Diario, Semanal, Quincenal, Mensual
+
+
+RF434: Alertas de inventarios programados próximos
+RF435: Historial de inventarios realizados
+
+13.2 Ejecución del Conteo Físico
+Proceso de Conteo:
+
+RF436: Iniciar sesión de inventario
+RF437: Lista de productos a contar (según tipo de inventario)
+RF438: Por cada producto/lote:
+
+Mostrar cantidad en sistema (teórica)
+Ingresar cantidad contada física
+Permitir escaneo de código de barras
+Agregar observaciones
+Tomar foto (opcional)
+
+
+RF439: Marcar productos como contados
+RF440: Productos faltantes por contar
+RF441: Guardar progreso (inventario puede tomar horas/días)
+RF442: Múltiples personas pueden contar simultáneamente
+
+13.3 Cálculo de Diferencias
+Análisis Automático:
+
+RF443: Calcular diferencias automáticamente:
+
+Diferencia = Cantidad Física - Cantidad Sistema
+Positiva: Sobrante
+Negativa: Faltante
+
+
+RF444: Clasificar productos:
+
+Sin diferencia (OK)
+Con faltante
+Con sobrante
+
+
+RF445: Calcular valor de las diferencias (cantidad × costo)
+RF446: Resumen general:
+
+Total productos contados
+Productos con diferencias
+Valor total de faltantes
+Valor total de sobrantes
+Diferencia neta
+
+
+
+13.4 Trazabilidad y Determinación de Ventas
+Análisis de Movimientos:
+
+RF447: Desde último inventario hasta ahora, listar:
+
+Entradas (compras, devoluciones clientes)
+Salidas registradas (devoluciones a proveedores, mermas registradas)
+Ventas registradas en POS (si se usó)
+
+
+RF448: Cálculo de ventas estimadas:
+
+Ventas = (Stock anterior + Entradas - Salidas - Stock actual)
+
+
+RF449: Identificar consumo por lote (FIFO):
+
+Determinar qué lotes se vendieron y en qué cantidad
+Actualizar estado de lotes
+Cerrar lotes agotados
+
+
+
+Determinación de Mermas:
+
+RF450: Si hay faltantes no explicados por ventas/salidas registradas:
+
+Clasificar como merma
+Solicitar justificación:
+
+Vencimiento
+Daño
+Robo/pérdida
+Consumo interno
+Error de conteo anterior
+
+
+Asignar a lote específico
+
+
+
+13.5 Ajustes de Inventario
+Aprobación de Ajustes:
+
+RF451: Diferencias mayores a umbral configurable requieren autorización
+RF452: Supervisor revisa y aprueba/rechaza ajustes
+RF453: Si se rechaza, solicitar reconteo
+
+Aplicación de Ajustes:
+
+RF454: Ajustar cantidades en sistema a cantidades físicas reales
+RF455: Crear movimientos de inventario tipo "Ajuste por inventario físico"
+RF456: Registrar diferencias como:
+
+Ventas (si son faltantes por ventas)
+Mermas (si son pérdidas)
+Ajustes varios (sobrantes o errores)
+
+
+RF457: Actualizar valorización del inventario
+
+Afectación Contable:
+
+RF458: Registrar costo de ventas determinado
+RF459: Registrar mermas como gasto
+RF460: Ajustar valor de inventario en balance
+
+13.6 Reportes de Inventario Físico
+
+RF461: Reporte detallado del inventario (producto por producto)
+RF462: Resumen ejecutivo de diferencias
+RF463: Productos con mayores faltantes
+RF464: Productos con sobrantes
+RF465: Mermas identificadas
+RF466: Ventas estimadas del período
+RF467: Comparativa inventarios anteriores
+RF468: Eficiencia de control de inventario
+
+
+14. MÓDULO: MERMAS Y PÉRDIDAS
+14.1 Registro de Mermas
+Origen de Mermas:
+
+RF469: Mermas detectadas en control de inventario (automático)
+RF470: Mermas registradas manualmente (antes de vender o al detectar)
+
+Registro Manual de Merma:
+
+RF471: Registrar merma de producto:
+
+Producto
+Lote específico
+Cantidad
+Clasificación:
+
+Vencimiento
+Daño/ruptura
+Robo/pérdida
+Consumo interno (empleados, familia)
+Deterioro
+Otro
+
+
+Descripción detallada
+Foto de evidencia (obligatoria para montos altos)
+Responsable (si aplica)
+
+
+RF472: Requiere revisión/autorización de supervisor
+RF473: Descontar del inventario del lote correspondiente
+RF474: Calcular valor de la merma (costo del lote)
+
+14.2 Proceso de Descarte
+
+RF475: Registrar proceso de descarte de productos vencidos/dañados
+RF476: Acta de destrucción (para auditoría)
+RF477: Fecha y hora de descarte
+RF478: Responsable del descarte
+RF479: Método de disposición
+
+14.3 Afectación Contable
+
+RF480: Registrar merma como gasto operativo
+RF481: Clasificación contable según tipo de merma
+RF482: Disminuir valor del inventario
+RF483: Si es consumo interno, puede ir a cuenta de retiros del dueño
+
+14.4 Reportes de Mermas
+
+RF484: Mermas por período
+RF485: Mermas por producto
+RF486: Mermas por categoría
+RF487: Mermas por sucursal
+RF488: Mermas por clasificación (vencimiento, daño, robo, etc.)
+RF489: Productos con mayor tasa de merma
+RF490: Valor total de mermas
+RF491: % de merma sobre inventario total
+RF492: Tendencias de mermas (comparativa períodos)
+
+
+15. MÓDULO: CONTROL DE VENCIMIENTOS
+15.1 Registro de Vencimientos
+
+RF493: Al recibir producto en compra, registrar fecha de vencimiento del lote (obligatorio para perecederos)
+RF494: Productos con vencimiento vs sin vencimiento (configurar por producto)
+RF495: Calcular días hasta vencimiento automáticamente
+
+15.2 Alertas de Vencimiento
+
+RF496: Alerta a 15 días antes de vencimiento (configurable)
+RF497: Alertas escalonadas adicionales (10, 7, 5, 3, 1 día)
+RF498: Notificaciones a gerente/dueño
+RF499: Destacar productos próximos a vencer en listados
+RF500: Dashboard con productos críticos por vencer
+
+15.3 Gestión de Productos Próximos a Vencer
+
+RF501: Consultar con gerente/dueño acción a tomar:
+
+Descuento para venta rápida
+Promoción especial
+Donación
+Preparar para descarte
+
+
+RF502: Si se aprueba descuento, aplicar descuento automático temporal
+RF503: Registrar decisión tomada
+
+15.4 Productos Vencidos
+
+RF504: Productos vencidos NO se bloquean automáticamente (según indicación)
+RF505: Marcar visualmente como vencidos en sistema
+RF506: Alerta al intentar vender producto vencido
+RF507: Requiere confirmación y autorización para vender vencido
+RF508: Registrar justificación si se vende (ej: "Cliente acepta producto vencido con descuento")
+
+15.5 Auditoría de Vencidos
+
+RF509: Registro de productos vencidos (historial)
+RF510: Acción tomada (vendido con descuento, descartado, donado)
+RF511: Responsable de la decisión
+RF512: Trazabilidad completa
+
+15.6 Reportes de Vencimientos
+
+RF513: Productos próximos a vencer (por días restantes)
+RF514: Productos vencidos en stock
+RF515: Valor de inventario próximo a vencer
+RF516: Historial de productos vencidos por período
+RF517: Efectividad en manejo de productos próximos a vencer (% vendido antes de vencer)
+
+
+16. MÓDULO: PUNTO DE VENTA (POS)
+16.1 Interfaz Rápida de Venta
+Pantalla Principal:
+
+RF518: Interfaz optimizada para velocidad
+RF519: Búsqueda de productos:
+
+Por código de barras (escaneo)
+Por código interno
+Por nombre (búsqueda inteligente)
+Por categoría
+
+
+RF520: Vista de productos frecuentes (acceso rápido)
+RF521: Grilla de productos favoritos
+RF522: Agregar producto al carrito de venta
+RF523: Modificar cantidad del producto
+RF524: Eliminar producto del carrito
+RF525: Ver foto del producto
+
+Carrito de Venta:
+
+RF526: Lista de productos en la venta actual
+RF527: Cantidad, precio unitario, subtotal por línea
+RF528: Subtotal general
+RF529: Aplicar descuento por producto
+RF530: Aplicar descuento global a la venta
+RF531: Aplicar promoción automática (si aplica)
+RF532: Calcular impuestos
+RF533: Total a pagar destacado
+
+16.2 Finalización de Venta
+Selección de Cliente:
+
+RF534: Venta a cliente genérico (por defecto)
+RF535: Buscar y seleccionar cliente registrado
+RF536: Agregar cliente nuevo rápido (nombre y teléfono)
+RF537: Si cliente tiene saldo a favor, opción de aplicarlo
+
+Métodos de Pago:
+
+RF538: Seleccionar método(s) de pago:
+
+Efectivo
+Nequi
+Transferencia bancaria
+Tarjeta (sin integración, solo registro)
+Crédito (si cliente lo permite)
+Saldo a favor
+Pago mixto (combinar varios métodos)
+
+
+RF539: Para efectivo: Ingresar monto recibido, calcular cambio
+RF540: Para pagos online: Registrar referencia/número de transacción
+RF541: Para crédito: Validar límite disponible del cliente
+RF542: Distribuir monto entre métodos de pago (si es mixto)
+
+Registro de la Venta:
+
+RF543: Confirmar venta
+RF544: Sistema genera número de venta consecutivo
+RF545: Consumir inventario automáticamente:
+
+Descontar del lote más antiguo primero (FIFO)
+Si lote no tiene suficiente, tomar de siguiente lote
+Registrar movimiento de inventario por cada lote consumido
+Vincular venta con lote(s) de origen
+Cerrar lotes que se agotaron
+
+
+RF546: Registrar ingreso en caja (si es efectivo) o en cuenta online
+RF547: Si es a crédito, crear cuenta por cobrar
+RF548: Registrar venta en contabilidad (ingreso)
+RF549: Calcular y registrar costo de venta (COGS) según lotes consumidos
+
+Generación de Comprobante:
+
+RF550: Opción de generar:
+
+Ticket de venta (simplificado)
+Factura completa
+
+
+RF551: Imprimir ticket/factura automáticamente
+RF552: Enviar por email/WhatsApp
+RF553: Opción de "No imprimir" (ecológico)
+
+16.3 Operaciones Adicionales
+Durante la Venta:
+
+RF554: Suspender venta (guardar carrito)
+RF555: Recuperar ventas suspendidas
+RF556: Cancelar venta actual
+RF557: Calculadora integrada
+RF558: Conversión de unidades (si aplica: kg a gramos, etc.)
+
+División de Cuenta:
+
+RF559: Opción de dividir venta en múltiples pagos
+RF560: Dividir equitativamente o por montos personalizados
+RF561: Cada pago genera su propio comprobante
+
+16.4 Ventas a Crédito desde POS
+
+RF562: Al seleccionar "Crédito", validar que cliente tenga límite
+RF563: Mostrar límite disponible
+RF564: Validar que venta no exceda límite
+RF565: Bloquear si cliente tiene facturas vencidas (configurable)
+RF566: Establecer fecha de vencimiento según plazo del cliente
+RF567: Generar cuenta por cobrar automáticamente
+RF568: Cliente firma ticket (firma digital en tablet o impreso)
+
+16.5 Devoluciones desde POS
+
+RF569: Opción de "Devolver venta"
+RF570: Buscar venta original por número o por cliente
+RF571: Seleccionar productos a devolver
+RF572: Indicar motivo
+RF573: Procesar según módulo de devoluciones
+
+16.6 Reportes del POS
+
+RF574: Ventas del día por cajero
+RF575: Productos más vendidos hoy
+RF576: Ticket promedio
+RF577: Ventas por método de pago
+RF578: Ventas por hora (identificar horas pico)
+
+
+17. MÓDULO: PROMOCIONES Y DESCUENTOS
+17.1 Creación de Promociones
+Datos de la Promoción:
+
+RF579: Crear promoción:
+
+Nombre de la promoción
+Descripción
+Tipo de promoción:
+
+Descuento porcentual
+Descuento fijo (monto)
+2x1, 3x2
+Producto gratis con compra
+Precio especial
+
+
+Fecha de vigencia:
+
+Fecha inicio
+Fecha fin
+Hora inicio y fin (opcional)
+
+
+Días aplicables: Lunes a domingo (selección múltiple)
+Estado: Activa, Inactiva, Programada
+
+
+
+Productos Participantes:
+
+RF580: Aplicar a:
+
+Productos específicos (selección individual)
+Categorías completas
+Marcas
+Todos los productos
+Combinaciones (ej: "Todos los productos de la categoría Lácteos de marca X")
+
+
+RF581: Excluir productos específicos de la promoción
+RF582: Cantidad mínima para aplicar promoción
+
+Condiciones:
+
+RF583: Monto mínimo de compra para aplicar
+RF584: Cantidad mínima de productos para aplicar
+RF585: Límite de uso:
+
+Por cliente (ej: "Máximo 2 veces por cliente")
+Por día
+Total general
+
+
+RF586: Acumulable con otras promociones: Sí/No
+RF587: Tipos de cliente elegibles: Todos, Solo minoristas, Solo mayoristas, Solo VIP
+
+17.2 Cupones de Descuento
+Creación de Cupones:
+
+RF588: Crear cupón con código único (ej: "VERANO2024")
+RF589: Tipo de descuento (porcentaje o monto fijo)
+RF590: Valor del descuento
+RF591: Fecha de vigencia
+RF592: Usos permitidos (1 vez, ilimitado, X veces)
+RF593: Clientes elegibles (todos, específicos, nuevos clientes)
+RF594: Monto mínimo de compra
+RF595: Productos aplicables
+
+Uso de Cupones:
+
+RF596: Cliente ingresa código de cupón en POS o portal
+RF597: Sistema valida cupón:
+
+Código existe
+Está vigente
+No excedió usos
+Cliente es elegible
+Cumple condiciones
+
+
+RF598: Aplicar descuento automáticamente
+RF599: Marcar uso del cupón
+RF600: Si es cupón único, desactivar tras uso
+
+17.3 Aplicación Automática de Promociones
+
+RF601: Al agregar producto a carrito (POS o portal), detectar promociones aplicables
+RF602: Aplicar automáticamente la mejor promoción
+RF603: Mostrar al usuario la promoción aplicada
+RF604: Permitir usuario rechazar promoción (opcional)
+RF605: Si múltiples promociones, priorizar según configuración
+
+17.4 Reportes de Promociones
+
+RF606: Uso de promociones por período
+RF607: Productos más vendidos por promoción
+RF608: Efectividad de promociones (incremento en ventas)
+RF609: Cupones más usados
+RF610: Cupones no usados
+RF611: ROI de promociones (costo del descuento vs aumento en ventas)
+RF612: Clientes que más usan promociones
+
+
+18. MÓDULO: EVALUACIÓN DE PROVEEDORES
+18.1 Sistema de Calificación
+Criterios de Evaluación:
+
+RF613: Calificar proveedor en:
+
+Calidad del producto: 1-5 estrellas
+Puntualidad en entregas: 1-5 estrellas
+Precios competitivos: 1-5 estrellas
+Servicio al cliente: 1-5 estrellas
+Cumplimiento de órdenes: 1-5 estrellas
+
+
+RF614: Calificación después de cada recepción de mercancía
+RF615: Comentarios y observaciones
+RF616: Calificación promedio general del proveedor
+
+Histórico de Desempeño:
+
+RF617: Registrar automáticamente:
+
+Órdenes cumplidas a tiempo vs retrasadas
+Órdenes completas vs incompletas
+Productos recibidos en buen estado vs defectuosos
+Frecuencia de devoluciones
+
+
+RF618: Calcular métricas:
+
+% de entregas a tiempo
+% de órdenes completas
+% de productos sin defectos
+Tasa de devolución
+
+
+
+18.2 Comparativas entre Proveedores
+
+RF619: No se compara precios automáticamente (según especificación: varios proveedores con productos diferentes)
+RF620: Comparativa de desempeño entre proveedores de la misma categoría
+RF621: Ranking de proveedores por calificación
+RF622: Identificar proveedores top y proveedores problemáticos
+
+18.3 Bloqueo de Proveedores
+
+RF623: Usuario puede bloquear proveedor manualmente
+RF624: Motivo de bloqueo obligatorio
+RF625: Proveedor bloqueado no aparece en opciones al crear órdenes
+RF626: Historial de bloqueos y desbloqueos
+RF627: Notificación a administrador al bloquear proveedor
+
+18.4 Reportes de Proveedores
+
+RF628: Ranking de proveedores por calificación
+RF629: Proveedores con mejor desempeño
+RF630: Proveedores con problemas frecuentes
+RF631: Análisis de puntualidad por proveedor
+RF632: Análisis de calidad por proveedor
+RF633: Recomendaciones de proveedores alternativos
+
+
+19. MÓDULO: ANÁLISIS DE CLIENTES
+19.1 Perfil del Cliente Mayorista
+Datos de Comportamiento:
+
+RF634: Registrar automáticamente:
+
+Frecuencia de compra: Días entre pedidos promedio
+Ticket promedio: Valor promedio por pedido
+Productos preferidos: Top 10 productos que más compra
+Categorías preferidas
+Día preferido de pedido
+Volumen acumulado: Total comprado (cantidad y valor)
+Antigüedad: Tiempo como cliente
+
+
+
+Historial de Pagos:
+
+RF635: Registrar comportamiento de pago:
+
+Pagos a tiempo
+Pagos con retraso
+Días promedio de retraso
+Monto promedio de crédito usado
+Facturas vencidas actuales
+
+
+
+Score Crediticio Interno:
+
+RF636: Calcular score automático basado en:
+
+% de pagos a tiempo (peso alto)
+Antigüedad como cliente
+Volumen de compras
+Facturas vencidas actuales
+Historio de devoluciones
+
+
+RF637: Score de 0-100 o clasificación (Excelente, Bueno, Regular, Malo)
+RF638: Recalcular score periódicamente (mensual)
+
+19.2 Límite de Crédito Dinámico
+
+RF639: Sistema sugiere límite de crédito basado en:
+
+Score crediticio
+Ticket promedio × 2 o 3
+Comportamiento de pago
+
+
+RF640: Usuario aprueba/modifica límite sugerido (no es automático)
+RF641: Historial de cambios de límite de crédito
+RF642: Justificación al aumentar/disminuir límite
+
+19.3 Segmentación de Clientes
+
+RF643: Clasificar clientes automáticamente:
+
+VIP: Alto volumen, excelente pago, largo tiempo
+Regulares: Compran frecuentemente
+Nuevos: Menos de X meses
+Inactivos: No compran hace X días
+Riesgo: Mal historial de pago
+
+
+RF644: Asignar estrategias por segmento (descuentos, límites, etc.)
+
+19.4 Reportes de Clientes
+
+RF645: Top clientes por volumen de compras
+RF646: Clientes con mejor comportamiento de pago
+RF647: Clientes con riesgo crediticio
+RF648: Clientes inactivos (sin compras en X días)
+RF649: Análisis de rentabilidad por cliente
+RF650: Clientes con mayor frecuencia de compra
+RF651: Productos preferidos por segmento de clientes
+
+
+20. MÓDULO: COMUNICACIÓN INTERNA
+20.1 Chat Interno
+Estructura:
+
+RF652: Chat entre empleados de la misma sucursal
+RF653: Chat entre empleados de diferentes sucursales
+RF654: Chat por roles (ej: "Chat de Administradores")
+RF655: Chat privado 1 a 1
+RF656: Grupos de chat personalizados
+
+Funcionalidades:
+
+RF657: Enviar mensajes de texto
+RF658: Enviar fotos
+RF659: Enviar documentos
+RF660: Notificaciones en tiempo real
+RF661: Historial de mensajes
+RF662: Búsqueda en mensajes
+RF663: Estados: Entregado, Leído
+RF664: Notificaciones push
+RF665: Badge de mensajes no leídos
+
+20.2 Mensajes entre Sucursales
+
+RF666: Canal de comunicación oficial entre sucursales
+RF667: Notificaciones de transferencias de inventario
+RF668: Solicitudes entre sucursales
+RF669: Coordinación logística
+
+20.3 Anuncios Corporativos
+
+RF670: Administrador puede publicar anuncios generales
+RF671: Anuncios visibles para todos o por sucursal/rol
+RF672: Prioridad de anuncio (normal, importante, urgente)
+RF673: Notificación obligatoria de anuncios importantes
+RF674: Confirmación de lectura obligatoria
+RF675: Historial de anuncios
+
+20.4 Sistema de Tickets de Soporte
+Creación de Ticket:
+
+RF676: Empleado crea ticket de soporte:
+
+Categoría (Técnico, Inventario, Nómina, Otro)
+Prioridad (Baja, Media, Alta, Crítica)
+Título
+Descripción
+Adjuntos
+Sucursal afectada
+
+
+RF677: Número de ticket único
+RF678: Estado: Abierto, En progreso, Resuelto, Cerrado
+
+Gestión de Tickets:
+
+RF679: Asignar ticket a responsable (IT, Administrador, etc.)
+RF680: Responder al ticket (conversación)
+RF681: Cambiar estado del ticket
+RF682: Escalamiento de prioridad
+RF683: Tiempo de respuesta y resolución
+RF684: Notificaciones al creador del ticket
+
+Reportes de Tickets:
+
+RF685: Tickets abiertos
+RF686: Tickets por categoría
+RF687: Tiempo promedio de resolución
+RF688: Tickets por sucursal
+
+
+21. MÓDULO: AUDITORÍA Y SEGURIDAD
+21.1 Bitácora de Auditoría (Logs)
+Registro de Acciones:
+
+RF689: Registrar automáticamente TODA acción relevante:
+
+Usuario que realizó la acción
+Fecha y hora exacta
+Tipo de acción (Crear, Editar, Eliminar, Consultar)
+Módulo/entidad afectada
+Valores anteriores (antes de modificar)
+Valores nuevos (después de modificar)
+IP del dispositivo
+ID de sesión
+
+
+RF690: Acciones críticas registradas:
+
+Inicio/cierre de sesión
+Cambios en inventario
+Ventas y anulaciones
+Cambios de precios
+Ajustes de inventario
+Pagos y cobros
+Cambios en usuarios y permisos
+Aprobaciones y rechazos
+Cambios en configuración
+
+
+
+Consulta de Logs:
+
+RF691: Buscar logs por:
+
+Usuario
+Fecha/período
+Tipo de acción
+Módulo
+Entidad específica (ej: Producto X)
+
+
+RF692: Ver línea de tiempo de cambios de una entidad
+RF693: Exportar logs para auditoría externa
+
+21.2 Seguridad de Acceso
+Intentos Fallidos:
+
+RF694: Registrar intentos de acceso fallidos
+RF695: Bloquear cuenta tras X intentos fallidos (configurable)
+RF696: Notificar al usuario por email de intentos sospechosos
+RF697: Desbloqueo manual por administrador
+
+Políticas de Contraseñas:
+
+RF698: Longitud mínima configurable (recomendado: 8 caracteres)
+RF699: Requerir combinación (mayúsculas, minúsculas, números, símbolos)
+RF700: Expiración de contraseña (configurable: 30, 60, 90 días)
+RF701: No permitir reutilizar últimas X contraseñas
+RF702: Obligar cambio de contraseña en primer acceso
+
+Autenticación de Dos Factores (2FA):
+
+RF703: Supabase maneja 2FA (según especificación)
+RF704: Opción de activar 2FA por usuario
+RF705: Métodos: App autenticadora, SMS, Email
+
+Gestión de Sesiones:
+
+RF706: Listar sesiones activas del usuario
+RF707: Ver dispositivo y ubicación de cada sesión
+RF708: Cerrar sesión en dispositivo específico
+RF709: Cerrar todas las sesiones excepto actual
+RF710: Cierre de sesión automático configurable (por inactividad)
+RF711: Opción de "Recordar sesión" en dispositivos confiables
+
+Recuperación de Contraseña:
+
+RF712: Método 1: Código OTP por email/SMS
+RF713: Método 2: Magic Link por email
+RF714: Priorizar código OTP con Magic Link (según especificación)
+RF715: Expiración de código/link (15-30 minutos)
+RF716: Historial de recuperaciones
+
+21.3 Permisos Granulares
+Configuración de Permisos:
+
+RF717: Definir permisos específicos por módulo
+RF718: Permisos por acción:
+
+Ver/Leer
+Crear
+Editar
+Eliminar
+Aprobar
+Exportar
+Configurar
+
+
+RF719: Permisos por entidad (ej: "Puede ver inventario pero no modificarlo")
+RF720: Permisos especiales:
+
+Ver precios de compra
+Modificar precios de venta
+Aplicar descuentos mayores a X%
+Anular facturas
+Aprobar devoluciones
+Acceder a reportes financieros
+Gestionar usuarios
+
+
+RF721: Asignar permisos a roles
+RF722: Asignar permisos personalizados a usuarios específicos
+RF723: Heredar permisos de rol + permisos adicionales
+RF724: Vista previa de permisos antes de asignar
+
+
+22. MÓDULO: BACKUP Y RECUPERACIÓN
+22.1 Backup Automático
+
+RF725: Backup automático programado en Supabase
+RF726: Frecuencias configurables:
+
+Diario (recomendado)
+Semanal
+Mensual
+
+RF727: Hora de ejecución del backup (hora de menor actividad)
+RF728: Retención de backups (último mes, últimos 3 meses, etc.)
+RF729: Backup incremental + backup completo periódico
+RF730: Notificación si backup falla
+
+22.2 Restauración de Datos
+
+RF731: Listar backups disponibles con fecha y hora
+RF732: Vista previa del contenido del backup
+RF733: Restauración completa del sistema
+RF734: Restauración selectiva (solo ciertos módulos/tablas)
+RF735: Restauración a punto en el tiempo
+RF736: Confirmación obligatoria antes de restaurar (acción destructiva)
+RF737: Crear backup manual antes de restaurar
+RF738: Log de restauraciones realizadas
+
+22.3 Recuperación ante Desastres
+
+RF739: Plan de recuperación documentado
+RF740: Backup redundante en múltiples ubicaciones
+RF741: Pruebas periódicas de restauración
+RF742: RTO (Recovery Time Objective) definido
+RF743: RPO (Recovery Point Objective) definido
+
+
+23. MÓDULO: REPORTES FISCALES Y LEGALES
+23.1 Libros Contables
+Libro de Ventas:
+
+RF744: Generar libro de ventas por período
+RF745: Detalle de cada factura emitida:
+
+Fecha, número, cliente, base gravable, IVA, total
+
+
+RF746: Totales del período
+RF747: Formato según normas colombianas
+RF748: Exportar a Excel/PDF
+
+Libro de Compras:
+
+RF749: Generar libro de compras por período
+RF750: Detalle de cada factura recibida:
+
+Fecha, número, proveedor, base gravable, IVA, total
+
+
+RF751: Totales del período
+RF752: Exportar a Excel/PDF
+
+23.2 Declaración de IVA
+
+RF753: Calcular IVA generado (ventas)
+RF754: Calcular IVA descontable (compras)
+RF755: Calcular IVA a pagar (generado - descontable)
+RF756: Reporte de IVA bimestral
+RF757: Desglose por tarifa de IVA (si hay múltiples tarifas)
+RF758: Exportar para presentación ante DIAN
+
+23.3 Retenciones
+
+RF759: Calcular retenciones en la fuente aplicadas
+RF760: Retenciones practicadas a proveedores
+RF761: Retenciones que nos practicaron clientes
+RF762: Certificados de retención
+RF763: Reporte consolidado de retenciones
+
+23.4 Medios Magnéticos e Información Exógena
+
+RF764: Exportar información exógena en formato requerido
+RF765: Formato 1001: Pagos a terceros
+RF766: Formato 1003: Retenciones practicadas
+RF767: Formato 1005: Ingresos recibidos
+RF768: Formato 1007: Saldo de cuentas por cobrar/pagar
+RF769: Validación de datos antes de exportar
+RF770: Generación de archivo .XML o formato requerido por DIAN
+
+23.5 Certificados Tributarios
+
+RF771: Generar certificado de ingresos y retenciones para clientes
+RF772: Generar certificado de ingresos y retenciones para proveedores
+RF773: Certificados con firma digital
+RF774: Envío automático por email
+RF775: Historial de certificados generados
+
+
+24. MÓDULO: KPIs Y ANÁLISIS EMPRESARIAL
+24.1 Dashboard Ejecutivo
+Métricas en Tiempo Real:
+
+RF776: Ventas del día actual (actualización en tiempo real)
+RF777: Comparativa ventas hoy vs ayer, vs mismo día semana pasada
+RF778: Ticket promedio del día
+RF779: Número de transacciones del día
+RF780: Estado de caja actual
+RF781: Inventario crítico (alertas)
+RF782: Cartera vencida (monto y %)
+RF783: Pedidos pendientes de procesar
+
+24.2 Análisis de Ventas
+
+RF784: Ventas diarias por sucursal
+RF785: Ventas mensuales por sucursal
+RF786: Comparativa ventas mes actual vs mes anterior
+RF787: Comparativa ventas año actual vs año anterior
+RF788: Tendencia de ventas (gráficos)
+RF789: Productos más vendidos (top 20)
+RF790: Productos menos vendidos (bottom 20)
+RF791: Ventas por categoría
+RF792: Ventas por marca
+RF793: Ventas por día de la semana
+RF794: Ventas por hora del día (identificar horas pico)
+
+24.3 Análisis de Inventario
+
+RF795: Rotación de inventario por producto
+RF796: Rotación de inventario por categoría
+RF797: Días de inventario disponible (cuántos días dura el stock actual)
+RF798: Productos de alta rotación
+RF799: Productos de baja rotación (estancados)
+RF800: Valor total del inventario
+RF801: Antigüedad promedio del inventario
+RF802: Productos con stock bajo
+RF803: Productos con sobrestock
+
+24.4 Análisis Financiero
+Rentabilidad:
+
+RF804: Margen de utilidad bruto (ventas - costo de ventas)
+RF805: Margen de utilidad neto (considerando gastos operativos)
+RF806: Margen de utilidad por producto
+RF807: Margen de utilidad por categoría
+RF808: Margen de utilidad por sucursal
+RF809: Punto de equilibrio (breakeven point)
+RF810: ROI (retorno de inversión) general
+RF811: ROI por sucursal
+
+Flujo de Caja:
+
+RF812: Flujo de caja diario
+RF813: Flujo de caja mensual
+RF814: Proyección de flujo de caja (30, 60, 90 días)
+RF815: Ingresos vs gastos operativos
+RF816: Gastos operativos como % de ventas
+
+24.5 Análisis de Cartera
+
+RF817: Cartera total (cuentas por cobrar)
+RF818: Cartera vencida (monto total)
+RF819: % de cartera vencida sobre total
+RF820: Antigüedad de cartera:
+
+Por vencer (próximos 7, 15, 30 días)
+Vencida 1-30 días
+Vencida 31-60 días
+Vencida 61-90 días
+Vencida >90 días
+
+
+RF821: Índice de morosidad
+RF822: Efectividad de cobranza (% cobrado a tiempo)
+RF823: Días promedio de cobro (DSO)
+RF824: Clientes con mayor deuda
+
+24.6 Análisis de Entregas
+
+RF825: Tiempo promedio de entrega por ruta
+RF826: Entregas a tiempo vs retrasadas
+RF827: % de entregas exitosas
+RF828: Problemas más frecuentes en entregas
+RF829: Costos logísticos por entrega
+
+24.7 Satisfacción del Cliente
+
+RF830: Sistema de calificación post-entrega (opcional)
+RF831: Encuestas de satisfacción
+RF832: Análisis de quejas y reclamos
+RF833: Tasa de retención de clientes
+RF834: NPS (Net Promoter Score)
+
+
+25. MÓDULO: CONFIGURACIÓN DEL SISTEMA
+25.1 Parámetros Generales
+Datos de la Empresa:
+
+RF835: Nombre comercial y razón social
+RF836: NIT/RIF
+RF837: Dirección principal
+RF838: Teléfonos y emails
+RF839: Logo de la empresa (usado en facturas, reportes)
+RF840: Colores corporativos (personalización de interfaz)
+RF841: Representante legal
+
+Configuración Regional:
+
+RF842: Idioma del sistema (español por defecto, opción de múltiples idiomas)
+RF843: Zona horaria (Colombia: UTC-5)
+RF844: Moneda (Peso colombiano COP)
+RF845: Formato de fechas (DD/MM/AAAA o configurables)
+RF846: Formato de números (separador de miles y decimales)
+
+25.2 Configuración de Impuestos
+
+RF847: Configurar tasas de IVA (ej: 19%, 5%, 0%)
+RF848: Productos gravados vs exentos
+RF849: Impuestos adicionales (si aplica)
+RF850: Configurar retenciones
+
+25.3 Políticas de Crédito
+
+RF851: Límite de crédito por defecto para nuevos clientes
+RF852: Plazo de pago estándar (días)
+RF853: Tasa de interés moratorio (si aplica)
+RF854: Días de gracia antes de mora
+RF855: Bloqueo automático de clientes con facturas vencidas (sí/no)
+
+25.4 Configuración de Documentos
+Numeración:
+
+RF856: Prefijo y consecutivo de facturas por sucursal
+RF857: Prefijo y consecutivo de notas de crédito
+RF858: Prefijo y consecutivo de notas de débito
+RF859: Prefijo y consecutivos de pedidos
+RF860: Prefijo y consecutivos de órdenes de compra
+
+Formatos de Impresión:
+
+RF861: Diseño de factura (plantilla personalizable)
+RF862: Diseño de ticket de venta
+RF863: Diseño de remisiones
+RF864: Diseño de recibos de pago
+RF865: Incluir/excluir elementos opcionales (logo, pie de página, términos, etc.)
+
+25.5 Configuración de Alertas
+
+RF866: Configurar días antes de vencimiento para alertas de inventario
+RF867: Configurar stock mínimo por producto o global
+RF868: Configurar días de anticipación para alertas de pagos
+RF869: Activar/desactivar notificaciones por email
+RF870: Activar/desactivar notificaciones push
+RF871: Activar/desactivar notificaciones por WhatsApp/SMS
+
+25.6 Configuración de Cierre de Sesión
+
+RF872: Cierre de sesión automático configurable (según especificación)
+RF873: Opciones: Nunca, 15 min, 30 min, 1 hora, 2 horas, 4 horas
+RF874: Advertencia antes de cerrar sesión por inactividad
+RF875: Configuración individual por usuario o global
+
+
+26. MÓDULO: INTEGRACIONES
+26.1 Integración con Hardware
+Impresoras de Tickets:
+
+RF876: Detectar impresoras térmicas disponibles
+RF877: Configurar impresora por defecto
+RF878: Tamaño de papel configurable (58mm, 80mm)
+RF879: Impresión automática tras confirmar venta
+RF880: Vista previa antes de imprimir
+
+Balanzas Electrónicas:
+
+RF881: Conexión con balanzas por puerto serial o USB
+RF882: Captura automática de peso
+RF883: Integración con POS (agregar producto con peso capturado)
+RF884: Tara automática
+
+Lectores de Código de Barras:
+
+RF885: Soporte para lectores USB/Bluetooth
+RF886: Búsqueda automática de producto al escanear
+RF887: Configuración de prefijos/sufijos de escaneo
+RF888: Soporte para diferentes tipos de códigos (EAN-13, Code 128, QR)
+
+26.2 Integración con WhatsApp
+WhatsApp Business API:
+
+RF889: Integración con API gratuita de WhatsApp (según especificación)
+RF890: Opciones sugeridas:
+
+WhatsApp Web via whatsapp-web.js (Node.js)
+Baileys (librería de WhatsApp no oficial)
+Twilio API (versión gratuita limitada)
+
+
+RF891: Envío de mensajes automáticos:
+
+Facturas PDF
+Confirmación de pedidos
+Recordatorios de pago
+Notificaciones de estado de pedido
+Promociones
+
+
+RF892: Plantillas de mensajes predefinidas
+RF893: Historial de mensajes enviados
+RF894: Estado de entrega (enviado, entregado, leído)
+
+26.3 Integración con Servicios de Mensajería (SMS)
+
+RF895: Integración con proveedor de SMS (ej: Twilio, Infobip)
+RF896: Envío de SMS para:
+
+Códigos OTP de verificación
+Alertas críticas
+Recordatorios de pago
+
+
+RF897: Configurar plantillas de SMS
+RF898: Log de SMS enviados
+
+26.4 Integraciones Futuras (Preparar Arquitectura)
+
+RF899: Pasarelas de pago (Wompi, PayU, Mercado Pago) - A futuro
+RF900: Facturación electrónica DIAN - A futuro
+RF901: Servicios de delivery - A futuro
+
+
+27. MÓDULO: GESTIÓN DE USUARIOS
+27.1 Creación de Usuarios
+Registro Manual (por Administrador):
+
+RF902: Administrador crea usuario manualmente
+RF903: Ingresar datos del usuario:
+
+Nombre completo
+Email
+Teléfono
+Sucursal asignada
+Rol
+
+
+RF904: Sistema genera contraseña temporal
+RF905: Enviar credenciales por email/WhatsApp al usuario
+RF906: Obligar cambio de contraseña en primer inicio de sesión
+
+Auto-Registro:
+
+RF907: Usuario se registra desde el portal (para clientes)
+RF908: Verificación de email/teléfono obligatoria
+RF909: Tipo de cuenta inicial: "Pendiente de aprobación"
+RF910: Administrador revisa y activa la cuenta
+
+27.2 Gestión de Cuentas
+Activación/Desactivación:
+
+RF911: Activar cuenta de usuario
+RF912: Desactivar cuenta temporalmente (usuario no puede acceder)
+RF913: Usuario desactivado no puede iniciar sesión
+RF914: Motivo de desactivación (registro obligatorio)
+
+Reseteo de Contraseña:
+
+RF915: Administrador puede resetear contraseña de cualquier usuario
+RF916: Generar nueva contraseña temporal
+RF917: Notificar al usuario
+RF918: Usuario puede solicitar reseteo (método OTP + Magic Link)
+
+Bloqueo/Desbloqueo:
+
+RF919: Bloquear usuario manualmente (por seguridad o incumplimiento)
+RF920: Bloqueo automático tras intentos fallidos
+RF921: Desbloquear manualmente
+RF922: Notificar al usuario del bloqueo y motivo
+
+Usuarios Inactivos:
+
+RF923: Identificar usuarios sin actividad en X días (configurable: 30, 60, 90)
+RF924: Alerta de usuarios inactivos a administrador
+RF925: Opción de desactivar automáticamente tras X días de inactividad
+RF926: Reactivación requiere aprobación
+
+27.3 Historial de Actividad
+
+RF927: Historial completo de actividad del usuario:
+
+Inicios de sesión (fecha, hora, dispositivo, IP)
+Acciones realizadas en cada sesión
+Módulos accedidos
+Documentos generados
+Cambios realizados
+
+
+RF928: Exportar historial de usuario
+RF929: Análisis de patrones de uso (ej: horas de mayor actividad)
+
+
+28. MÓDULO: MODO OFFLINE Y SINCRONIZACIÓN
+28.1 Funcionamiento Offline
+Operaciones Permitidas sin Internet:
+
+RF930: Consultar inventario local (Hive cache)
+RF931: Registrar ventas (almacenadas localmente)
+RF932: Consultar clientes (cache local)
+RF933: Registrar créditos otorgados
+RF934: Registrar salidas de dinero
+RF935: Consultar productos y precios
+RF936: Todas las operaciones de LECTURA desde caché Hive
+RF937: Operaciones de ESCRITURA se encolan para sincronización
+
+Limitaciones Offline:
+
+RF938: NO se pueden realizar operaciones que requieran validación en tiempo real:
+
+Verificar límite de crédito actualizado
+Ver inventario de otra sucursal
+Consultar reportes consolidados
+Recibir notificaciones en tiempo real
+
+
+RF939: Indicador visual claro de "Modo Offline"
+
+28.2 Sistema de Colas de Sincronización
+Cola de Peticiones:
+
+RF940: Todas las operaciones offline se almacenan en cola de sincronización (Hive)
+RF941: Cada petición en cola contiene:
+
+Timestamp
+Tipo de operación
+Datos completos de la operación
+Estado (pendiente, sincronizado, error)
+Intentos de sincronización
+
+
+RF942: Cola se guarda persistentemente en Hive
+RF943: Orden FIFO (First In, First Out)
+
+Sincronización Automática:
+
+RF944: Detectar cuando se recupera conexión a internet
+RF945: Sincronizar automáticamente cola de peticiones
+RF946: Procesamiento secuencial (una por una)
+RF947: Actualizar estado de cada petición
+RF948: Si petición falla, reintentar (con límite de intentos)
+RF949: Si después de X intentos falla, marcar para revisión manual
+RF950: Notificar al usuario cuando sincronización se complete
+RF951: Notificar si hay errores que requieren intervención
+
+28.3 Manejo de Conflictos
+Detección de Conflictos:
+
+RF952: Detectar conflictos al sincronizar:
+
+Mismo registro modificado en múltiples dispositivos
+Stock insuficiente que se validó offline pero ya no hay
+Cliente bloqueado mientras se hizo venta offline
+Precio modificado mientras se hizo venta offline
+
+
+RF953: Políticas de resolución:
+
+Last Write Wins (por defecto para la mayoría)
+Manual Resolution para conflictos críticos (inventario, dinero)
+Server Wins para datos maestros
+Client Wins para datos locales (cierre de caja)
+
+
+
+Interfaz de Resolución:
+
+RF954: Panel de conflictos para administrador
+RF955: Mostrar ambas versiones (local vs servidor)
+RF956: Permitir seleccionar versión correcta o combinar
+RF957: Log de conflictos resueltos
+
+28.4 Caché Local con Hive
+
+RF958: Sincronizar datos frecuentes a Hive:
+
+Catálogo de productos
+Precios
+Clientes
+Inventario (última versión conocida)
+Configuración
+
+
+RF959: Actualizar caché periódicamente cuando hay conexión
+RF960: Priorizar datos críticos en caché
+RF961: Limpiar caché antiguo automáticamente
+
+
+29. MÓDULO: CAPACITACIÓN Y SOPORTE
+29.1 Chat de Soporte
+
+RF962: Chat de soporte integrado en la aplicación
+RF963: Contacto directo con equipo de soporte
+RF964: Historial de conversaciones
+RF965: Adjuntar capturas de pantalla
+RF966: Estado del ticket (abierto, en progreso, resuelto)
+RF967: Base de conocimientos con artículos de ayuda
+RF968: FAQs más frecuentes
+
+29.2 Modo Demostración
+
+RF969: Ambiente de prueba/demostración separado
+RF970: Datos de ejemplo pre-cargados:
+
+Productos de muestra
+Clientes ficticios
+Ventas de ejemplo
+Inventario ficticio
+
+
+RF971: Todas las funcionalidades habilitadas para práctica
+RF972: Resetear datos de demostración fácilmente
+RF973: Indicador visual claro de "Modo Demo"
+RF974: Tutoriales guiados paso a paso
+RF975: Videos instructivos integrados
+
+
+30. MÓDULO: AJUSTES DE INVENTARIO
+30.1 Inventarios Físicos Periódicos
+(Ya cubierto en Módulo 13, pero se refuerza aquí)
+
+RF976: Programar inventarios físicos (diario, semanal, quincenal, mensual)
+RF977: Recordatorios de inventarios programados
+
+30.2 Registro de Diferencias
+Cálculo Automático:
+
+RF978: Sistema calcula diferencias automáticamente al finalizar conteo
+RF979: Diferencia = Cantidad Física - Cantidad Sistema
+RF980: Clasificar diferencias por magnitud (menor, media, mayor)
+
+Registro Manual:
+
+RF981: Permitir registro manual de ajuste si se detecta error sin inventario completo
+RF982: Especificar producto, lote, cantidad a ajustar
+RF983: Motivo obligatorio
+
+30.3 Autorización de Ajustes
+
+RF984: Ajustes menores (dentro de umbral): Autorización de supervisor
+RF985: Ajustes mayores (fuera de umbral): Autorización de administrador/dueño
+RF986: Rechazar ajuste si no está justificado
+RF987: Solicitar reconteo si diferencia es sospechosa
+
+30.4 Trazabilidad de Ajustes
+
+RF988: Historial completo de ajustes:
+
+Producto y lote ajustado
+Cantidad antes/después
+Usuario que realizó el ajuste
+Usuario que autorizó
+Motivo
+Fecha y hora
+Valor del ajuste (impacto económico)
+
+
+RF989: Reportes de ajustes por período
+RF990: Auditoría de ajustes frecuentes (posible señal de problema)
+
+
+31. MÓDULO: GASTOS OPERATIVOS
+31.1 Categorías de Gastos
+Tipos de Gastos:
+
+RF991: Definir categorías de gastos:
+
+Servicios públicos (luz, agua, gas, internet, teléfono)
+Alquiler de locales
+Mantenimiento de equipos
+Publicidad y marketing
+Gastos administrativos
+Transporte y logística
+Papelería y suministros
+Impuestos y tasas
+Otros
+
+
+RF992: Subcategorías dentro de cada categoría
+RF993: Asociar cada categoría con cuenta contable
+
+31.2 Registro de Gastos
+
+RF994: Registrar gasto:
+
+Fecha del gasto
+Categoría y subcategoría
+Concepto/descripción
+Proveedor/beneficiario
+Monto
+Método de pago (efectivo, transferencia, cheque)
+Sucursal que incurre el gasto (o corporativo)
+Factura/recibo (adjuntar archivo)
+Observaciones
+
+
+RF995: Si es pago recurrente, opción de crear programación automática
+RF996: Aprobación requerida para gastos mayores a X monto
+RF997: Registro automático en contabilidad
+
+31.3 Gastos Recurrentes
+
+RF998: Programar gastos recurrentes:
+
+Frecuencia (mensual, quincenal, etc.)
+Fecha de pago
+Monto (fijo o variable)
+Proveedor
+
+
+RF999: Alertas de gastos recurrentes próximos a vencer
+RF1000: Registro automático o manual con datos pre-llenados
+
+31.4 Control Presupuestario
+
+RF1001: Definir presupuesto mensual por categoría de gasto
+RF1002: Comparar gasto real vs presupuesto
+RF1003: Alertas al exceder presupuesto
+RF1004: Reportes de cumplimiento presupuestario
+
+31.5 Clasificación Contable
+
+RF1005: Asignar cada gasto a cuenta contable automáticamente
+RF1006: Registro de gastos como egresos en contabilidad
+RF1007: Afectación al flujo de caja
+
+31.6 Reportes de Gastos
+
+RF1008: Gastos por período (diario, mensual, anual)
+RF1009: Gastos por categoría
+RF1010: Gastos por sucursal
+RF1011: Comparativa gastos mes actual vs anterior
+RF1012: Tendencia de gastos
+RF1013: Gastos como % de ingresos
+RF1014: Análisis de eficiencia operativa
+
+
+ANEXO A: PRODUCTO SAAS MULTI-TENANT PARA DISTRIBUCIÓN EMPRESARIAL
+Implicaciones:
+
+Múltiples empresas usando la misma plataforma
+Cada empresa con sus datos aislados (multi-tenancy)
+Sistema de licencias y suscripciones
+Plataforma de administración centralizada
+Portal para clientes empresariales
+Sistema de soporte técnico
+Facturación automática
+Métricas de negocio SaaS
+
+
+MÓDULOS ADICIONALES NECESARIOS:
+NUEVOS MÓDULOS (13 adicionales):
+#MÓDULODESCRIPCIÓN33Gestión de LicenciasCreación, activación, renovación, suspensión de licencias34Multi-TenancyAislamiento de datos por empresa cliente35Planes y SuscripcionesDefinición de planes, precios, características36Facturación SaaSFacturación recurrente automática37Gestión de PagosPasarelas de pago, registro de transacciones38Portal de ClientesDashboard para clientes empresariales39Plataforma de AdministraciónPanel de control para el equipo de QFlow Pro40Gestión de SoporteSistema de tickets, base de conocimientos41Onboarding de ClientesProceso de alta y configuración inicial42Métricas SaaSKPIs de negocio (MRR, Churn, CAC, LTV)43Contabilidad SaaSContabilidad del negocio de licencias44Auditoría y ComplianceLogs, GDPR, términos de servicio45Marketplace/AddonsMódulos adicionales opcionales
+
+REQUISITOS FUNCIONALES COMPLETOS:
+
+MÓDULO 33: GESTIÓN DE LICENCIAS
+33.1 Tipos de Licencias
+RF1015: Definición de Tipos de Licencia
+Tipos soportados:
+
+Trial: Prueba gratuita (30 días)
+Basic: Plan básico
+Pro: Plan profesional
+Enterprise: Plan empresarial
+Custom: Plan personalizado
+
+RF1016: Características de Licencias
+Cada licencia incluye:
+
+ID único de licencia: UUID + código legible
+Empresa asociada: Cliente propietario
+Plan contratado: Basic/Pro/Enterprise/Custom
+Estado: Trial, Active, Suspended, Expired, Cancelled
+Fecha de inicio
+Fecha de expiración
+Límites del plan:
+
+Número de sucursales permitidas
+Número de usuarios permitidos
+Espacio de almacenamiento (GB)
+Número de transacciones/mes
+Módulos habilitados
+
+
+Claves de activación
+Información de facturación
+
+RF1017: Creación de Licencias
+Proceso de creación:
+
+Administrador crea licencia desde plataforma admin
+Selecciona cliente (empresa)
+Selecciona plan
+Establece fecha de inicio y duración
+Configura límites específicos
+Sistema genera:
+
+ID de licencia
+Clave de activación
+Token de API
+
+
+Envío automático de credenciales al cliente
+
+RF1018: Activación de Licencias
+
+Cliente recibe email con clave de activación
+Ingresa clave en la aplicación
+Sistema valida:
+
+Clave existe y no está usada
+Licencia no expirada
+Plan activo
+
+
+Si válida:
+
+Activa la licencia
+Habilita módulos según plan
+Registra primera activación
+Envía confirmación
+
+
+
+RF1019: Validación Continua de Licencias
+Verificaciones automáticas:
+
+Al inicio de sesión: Verificar licencia activa
+Cada 24 horas: Verificar vigencia en background
+Antes de operaciones críticas: Validar límites no excedidos
+Si licencia inválida:
+
+Bloquear acceso
+Mostrar mensaje de renovación
+Permitir solo lectura de datos (opcional)
+Notificar al cliente
+
+
+
+RF1020: Renovación de Licencias
+Proceso de renovación:
+
+15 días antes de expirar: Alerta al cliente
+7 días antes: Recordatorio
+1 día antes: Alerta urgente
+Al vencer:
+
+Si renovación automática: Procesar pago y extender
+Si no: Suspender licencia
+
+
+Cliente puede renovar manualmente desde portal
+
+RF1021: Suspensión de Licencias
+Causas de suspensión:
+
+Falta de pago
+Violación de términos de servicio
+Solicitud del cliente (pausar temporalmente)
+Límites excedidos persistentemente
+
+Efectos:
+
+Acceso bloqueado a la aplicación
+Datos preservados (no eliminados)
+Email de notificación
+Periodo de gracia (7 días) antes de eliminación
+
+RF1022: Cancelación de Licencias
+Proceso de cancelación:
+
+Cliente solicita cancelación desde portal
+Opción de: Inmediata o al final del período pagado
+Sistema:
+
+Marca licencia como "Cancelled"
+Deshabilita renovación automática
+Envía confirmación
+Retiene datos por 30 días
+Ofrece exportación de datos
+
+
+
+RF1023: Upgrade/Downgrade de Planes
+Cambio de plan:
+
+Cliente solicita cambio de plan
+Cálculo prorrateado:
+
+Upgrade: Cobrar diferencia inmediatamente
+Downgrade: Aplicar crédito a próxima factura
+
+
+Ajustar límites automáticamente
+Notificar cambios
+Registrar en historial
+
+RF1024: Control de Límites
+Monitoreo en tiempo real:
+
+Usuarios activos: Bloquear creación si excede límite
+Sucursales: Bloquear creación de nuevas sucursales
+Almacenamiento: Alertas al 80%, 90%, bloqueo al 100%
+Transacciones/mes: Alertas al aproximarse al límite
+Módulos: Solo permitir acceso a módulos del plan
+
+RF1025: Licencias para Ambientes
+Tipos de ambientes:
+
+Producción: Licencia principal
+Staging: Licencia de pruebas (incluida en Enterprise)
+Desarrollo: Licencia de desarrollo (para clientes Enterprise)
+
+RF1026: Clonación de Licencias
+
+Administrador puede clonar licencia existente
+Útil para renovaciones o crear licencia similar
+Heredar configuración pero generar nuevas claves
+
+
+33.2 Sistema de Claves y Tokens
+RF1027: Generación de Claves de Activación
+Formato de clave:
+QFLOW-XXXX-XXXX-XXXX-XXXX
+Características:
+
+Alfanumérica (excluir caracteres ambiguos: 0, O, I, 1)
+Única y no reutilizable
+Vinculada a licencia específica
+Fecha de expiración de activación (30 días)
+
+RF1028: Tokens de API
+
+Cada licencia tiene token de API único
+Usado para integraciones externas
+Rotación periódica (opciones)
+Revocación inmediata si compromiso
+
+RF1029: Firma Digital de Licencias
+
+Licencias firmadas digitalmente (JWT)
+Verificación de autenticidad
+Prevención de manipulación
+Validación offline posible (para modo sin conexión)
+
+
+33.3 Reportes de Licencias
+RF1030: Dashboard de Licencias
+Métricas visibles para admin:
+
+Total de licencias activas
+Licencias por vencer (próximos 30 días)
+Licencias suspendidas
+Licencias en trial
+Distribución por plan
+Ingresos proyectados
+
+RF1031: Historial de Licencias
+
+Historial completo por cliente
+Cambios de plan
+Suspensiones y reactivaciones
+Renovaciones
+Pagos asociados
+
+RF1032: Exportación de Datos de Licencias
+
+Exportar listado de licencias (Excel, CSV)
+Filtros por estado, plan, cliente
+Para análisis externo
+
+
+MÓDULO 34: ARQUITECTURA MULTI-TENANT
+34.1 Estrategia Multi-Tenant
+RF1033: Modelo de Aislamiento de Datos
+Enfoque elegido: SHARED DATABASE + SHARED SCHEMA con Row-Level Security (RLS)
+Justificación:
+
+Menor costo operativo (una sola base de datos)
+Más fácil mantenimiento y actualizaciones
+RLS de PostgreSQL garantiza aislamiento
+Escalabilidad mediante sharding futuro
+
+RF1034: Tabla de Tenants (Empresas Cliente)
+sqlCREATE TABLE tenants (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  slug VARCHAR(50) UNIQUE NOT NULL, -- identificador URL-friendly
+  company_name VARCHAR(200) NOT NULL,
+  tax_id VARCHAR(50),
+  plan VARCHAR(50) NOT NULL, -- 'trial', 'basic', 'pro', 'enterprise'
+  status VARCHAR(20) NOT NULL, -- 'active', 'suspended', 'cancelled'
+  license_id UUID REFERENCES licenses(id),
+  
+  -- Límites del plan
+  max_branches INTEGER,
+  max_users INTEGER,
+  max_storage_gb INTEGER,
+  max_transactions_monthly INTEGER,
+  enabled_modules JSONB, -- array de módulos habilitados
+  
+  -- Datos de contacto
+  primary_contact_name VARCHAR(200),
+  primary_contact_email VARCHAR(100),
+  primary_contact_phone VARCHAR(20),
+  
+  -- Configuración
+  timezone VARCHAR(50) DEFAULT 'America/Bogota',
+  language VARCHAR(10) DEFAULT 'es',
+  currency VARCHAR(3) DEFAULT 'COP',
+  
+  -- Metadatos
+  onboarded_at TIMESTAMP WITH TIME ZONE,
+  trial_ends_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+RF1035: Tenant Context en Todas las Tablas
+Modificación de tablas existentes:
+
+Agregar campo tenant_id UUID REFERENCES tenants(id) a TODAS las tablas
+Índice compuesto: (tenant_id, id) para mejor performance
+RLS policies por tenant
+
+Ejemplo:
+sqlALTER TABLE products ADD COLUMN tenant_id UUID REFERENCES tenants(id);
+CREATE INDEX idx_products_tenant ON products(tenant_id, id);
+
+-- Row Level Security
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY tenant_isolation_policy ON products
+  USING (tenant_id = current_setting('app.current_tenant_id')::uuid);
+RF1036: Context Injection
+Al autenticar usuario:
+dart// Después de login exitoso
+await supabase.rpc('set_tenant_context', params: {
+  'tenant_id': user.tenantId
+});
+
+// Todas las queries subsecuentes solo ven datos de ese tenant
+Implementación en Supabase:
+sqlCREATE FUNCTION set_tenant_context(tenant_id UUID)
+RETURNS VOID AS $$
+BEGIN
+  PERFORM set_config('app.current_tenant_id', tenant_id::text, false);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+RF1037: Verificación de Límites por Tenant
+Antes de crear recursos:
+dartFuture<bool> canCreateBranch(String tenantId) async {
+  final tenant = await getTenant(tenantId);
+  final currentBranches = await countBranches(tenantId);
+  return currentBranches < tenant.maxBranches;
+}
+RF1038: Tenant Onboarding
+Proceso automatizado:
+
+Crear registro en tenants
+Crear esquema de datos inicial (categorías default, roles, etc.)
+Crear usuario administrador principal
+Enviar email de bienvenida con credenciales
+Generar wizard de configuración inicial
+Activar licencia trial (si aplica)
+
+RF1039: Soft Delete de Tenants
+
+Tenants cancelados no se eliminan inmediatamente
+Marcar como status='deleted'
+Retener datos por 90 días (configurable)
+Proceso de limpieza automático después del periodo
+
+RF1040: Migración de Tenant
+
+Permitir mover tenant a otro servidor/shard (futuro)
+Exportar datos completos de tenant
+Importar en nuevo ambiente
+Actualizar referencias
+
+
+34.2 Seguridad Multi-Tenant
+RF1041: Prevención de Cross-Tenant Access
+Validaciones obligatorias:
+
+Todo query incluye filtro por tenant_id
+RLS activo en todas las tablas
+Tests automáticos de aislamiento
+Auditoría de accesos cross-tenant
+
+RF1042: Encriptación de Datos Sensibles
+
+Datos sensibles encriptados a nivel de aplicación
+Clave de encriptación por tenant
+Almacenada en secrets manager (Supabase Vault)
+
+RF1043: Backups por Tenant
+
+Backup completo de base de datos (todos los tenants)
+Capacidad de restaurar tenant individual
+Exportación de datos por tenant bajo demanda
+
+
+MÓDULO 35: PLANES Y SUSCRIPCIONES
+35.1 Definición de Planes
+RF1044: Estructura de Planes
+Tabla de planes:
+sqlCREATE TABLE subscription_plans (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  slug VARCHAR(50) UNIQUE NOT NULL, -- 'trial', 'basic', 'pro', 'enterprise'
+  name VARCHAR(100) NOT NULL,
+  description TEXT,
+  
+  -- Pricing
+  monthly_price DECIMAL(10,2),
+  annual_price DECIMAL(10,2), -- descuento anual
+  currency VARCHAR(3) DEFAULT 'COP',
+  
+  -- Límites
+  max_branches INTEGER,
+  max_users INTEGER,
+  max_storage_gb INTEGER,
+  max_transactions_monthly INTEGER,
+  
+  -- Características
+  features JSONB, -- lista de features habilitadas
+  enabled_modules JSONB, -- módulos habilitados
+  
+  -- Configuración
+  trial_days INTEGER DEFAULT 0,
+  is_public BOOLEAN DEFAULT true, -- visible en pricing page
+  sort_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+RF1045: Planes Predefinidos
+Plan Trial:
+
+Duración: 30 días
+Precio: $0
+Límites: 1 sucursal, 3 usuarios, 5GB, 500 transacciones/mes
+Módulos: Básicos (inventario, ventas, caja)
+
+Plan Basic:
+
+Precio: $150,000 COP/mes ($1,500,000/año con 17% descuento)
+Límites: 1 sucursal, 5 usuarios, 50GB, 2,000 transacciones/mes
+Módulos: Inventario, Ventas, Caja, Clientes, Proveedores, Reportes Básicos
+
+Plan Pro: ⭐ Más Popular
+
+Precio: $350,000 COP/mes ($3,500,000/año con 17% descuento)
+Límites: 5 sucursales, 20 usuarios, 200GB, 10,000 transacciones/mes
+Módulos: Todos los de Basic + Contabilidad, Nómina, Créditos, Portal Clientes, Logística, Promociones, Reportes Avanzados
+
+Plan Enterprise:
+
+Precio: Personalizado (desde $800,000 COP/mes)
+Límites: Ilimitado (o personalizados)
+Módulos: Todos + Soporte prioritario, API completa, Whitelabel, Ambientes de staging
+
+RF1046: Características Detalladas por Plan
+Tabla de features:
+sqlCREATE TABLE plan_features (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  plan_id UUID REFERENCES subscription_plans(id),
+  feature_key VARCHAR(100) NOT NULL, -- 'multi_branch', 'accounting', 'api_access'
+  feature_name VARCHAR(200),
+  is_enabled BOOLEAN DEFAULT true,
+  limit_value INTEGER, -- si aplica límite numérico
+  UNIQUE(plan_id, feature_key)
+);
+RF1047: Comparativa de Planes
+
+Página pública de pricing
+Tabla comparativa de características
+Destacar plan recomendado
+Calculadora de precios (usuarios, sucursales)
+Botones de "Comenzar Trial" o "Contratar"
+
+RF1048: Planes Personalizados
+
+Administrador puede crear plan custom para cliente específico
+Basado en plantilla de plan existente
+Ajustar precios y límites
+No visible públicamente
+Asignación manual
+
+RF1049: Addons/Complementos
+Tabla de addons:
+sqlCREATE TABLE addons (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  slug VARCHAR(50) UNIQUE NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  description TEXT,
+  monthly_price DECIMAL(10,2),
+  addon_type VARCHAR(50), -- 'storage', 'users', 'module', 'feature'
+  value INTEGER, -- ej: 50GB, 10 usuarios
+  is_active BOOLEAN DEFAULT true
+);
+Ejemplos de addons:
+
+Almacenamiento adicional: +50GB por $20,000/mes
+Usuarios adicionales: +5 usuarios por $30,000/mes
+Módulo de Marketing: $50,000/mes
+Integraciones premium: $75,000/mes
+
+RF1050: Suscripciones de Clientes
+Tabla de suscripciones:
+sqlCREATE TABLE subscriptions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  tenant_id UUID REFERENCES tenants(id),
+  plan_id UUID REFERENCES subscription_plans(id),
+  
+  -- Ciclo de facturación
+  billing_cycle VARCHAR(20) NOT NULL, -- 'monthly', 'annual'
+  current_period_start DATE NOT NULL,
+  current_period_end DATE NOT NULL,
+  
+  -- Estado
+  status VARCHAR(20) NOT NULL, -- 'trialing', 'active', 'past_due', 'canceled', 'unpaid'
+  trial_ends_at TIMESTAMP WITH TIME ZONE,
+  canceled_at TIMESTAMP WITH TIME ZONE,
+  
+  -- Renovación
+  auto_renew BOOLEAN DEFAULT true,
+  
+  -- Pricing
+  amount DECIMAL(10,2) NOT NULL,
+  currency VARCHAR(3) DEFAULT 'COP',
+  
+  -- Addons
+  active_addons JSONB, -- [{addon_id, quantity}]
+  
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+RF1051: Cambio de Ciclo de Facturación
+
+Cliente puede cambiar de mensual a anual (o viceversa)
+Cálculo prorrateado
+Aplicar descuento anual si aplica
+Próxima factura ajustada
+
+
+35.2 Gestión de Suscripciones
+RF1052: Creación de Suscripción
+Al contratar un plan:
+
+Cliente selecciona plan y ciclo
+Selecciona addons (opcional)
+Ingresa datos de pago
+Sistema crea suscripción en estado "pending"
+Procesa pago inicial
+Si exitoso: Activa suscripción y licencia
+Envía factura y confirmación
+
+RF1053: Renovación Automática
+Proceso automatizado (CRON job):
+
+3 días antes de vencimiento: Intentar cobro
+Si exitoso:
+
+Extender período de suscripción
+Generar factura
+Enviar recibo
+
+
+Si falla:
+
+Reintentar según configuración (día 1, 3, 7)
+Notificar al cliente
+Si falla todos los intentos: Suspender suscripción
+
+
+
+RF1054: Cancelación de Suscripción
+Opciones:
+
+Inmediata: Termina acceso de inmediato, reembolso prorrateado
+Al final del período: Mantiene acceso hasta fin del período pagado
+
+Proceso:
+
+Marcar auto_renew=false y canceled_at=NOW()
+Enviar confirmación
+Ofrecer feedback (¿por qué cancelas?)
+Ofrecer pausa temporal como alternativa
+Recordar exportación de datos
+
+RF1055: Pausa de Suscripción
+
+Cliente puede pausar suscripción (1-3 meses)
+No se cobra durante pausa
+Datos preservados
+Reactivación fácil
+
+RF1056: Reactivación de Suscripción
+
+Cliente puede reactivar suscripción cancelada/pausada
+Dentro de 90 días: Datos intactos
+Después de 90 días: Requiere re-onboarding
+
+
+2. PLATAFORMA 1: ADMIN QFLOW PRO (Nosotros)
+2.1 Propósito
+Plataforma centralizada para que el equipo de QFlow Pro administre todo el negocio SaaS: clientes, licencias, facturación, soporte, métricas.
+2.2 Usuarios de esta Plataforma
+
+Super Administrador QFlow Pro
+Equipo de Ventas
+Equipo de Soporte Técnico
+Equipo de Finanzas/Contabilidad
+Equipo de Desarrollo/DevOps
+
+
+MÓDULO 33: GESTIÓN DE CLIENTES EMPRESARIALES
+33.1 Registro de Clientes Empresariales
+RF1015: Crear Cliente Empresarial
+
+Ingresar datos de la empresa:
+
+Nombre comercial y razón social
+NIT/RIF
+Sector/industria
+Tamaño (pequeña, mediana, grande)
+País y ciudad
+Dirección física
+Sitio web
+
+
+Datos del contacto principal:
+
+Nombre completo
+Cargo
+Email corporativo
+Teléfono
+WhatsApp
+
+
+Origen de la oportunidad (marketing, referido, demo, etc.)
+Notas internas sobre el cliente
+
+RF1016: Estados del Cliente
+
+Lead: Prospecto, aún no es cliente
+Trial: En período de prueba
+Active: Cliente activo con suscripción pagada
+Churned: Cliente que canceló
+Suspended: Suspendido por falta de pago u otra razón
+
+RF1017: Perfil Completo del Cliente
+
+Vista unificada con toda la información:
+
+Datos generales
+Licencias activas
+Historial de suscripciones
+Historial de pagos
+Tickets de soporte
+Métricas de uso
+Comunicaciones
+Notas internas
+
+
+
+RF1018: Historial de Interacciones
+
+Registrar todas las interacciones:
+
+Llamadas de ventas
+Demos realizadas
+Emails enviados
+Reuniones
+Tickets resueltos
+
+
+Fecha, responsable, resumen, próxima acción
+
+RF1019: Segmentación de Clientes
+
+Etiquetar clientes por:
+
+Segmento (micro, pequeña, mediana empresa)
+Industria
+Región geográfica
+Plan contratado
+Riesgo de churn (bajo, medio, alto)
+Potencial de upsell
+
+
+
+RF1020: Búsqueda y Filtros
+
+Buscar por nombre, NIT, email, teléfono
+Filtrar por estado, plan, fecha de registro, región
+Exportar listados
+
+
+MÓDULO 34: GESTIÓN DE LICENCIAS
+34.1 Creación y Configuración de Licencias
+RF1021: Crear Licencia para Cliente
+
+Seleccionar cliente empresarial
+Seleccionar plan (Trial, Basic, Pro, Enterprise, Custom)
+Configurar parámetros:
+
+Fecha de inicio
+Duración (mensual, anual, personalizada)
+Límites específicos:
+
+Número máximo de sucursales
+Número máximo de usuarios
+Espacio de almacenamiento (GB)
+Transacciones mensuales permitidas
+
+
+Módulos habilitados (selección múltiple)
+
+
+Generar clave de activación única
+Generar token de API (si aplica)
+
+RF1022: Tipos de Licencias
+
+Trial: Prueba gratuita 30 días
+Comercial: Planes pagos (Basic/Pro/Enterprise)
+Demo: Para demostraciones de ventas (limitada)
+Internal: Para uso interno de QFlow Pro
+Partner: Para partners/revendedores
+
+RF1023: Estados de Licencia
+
+Pending: Creada pero no activada
+Active: Activa y funcional
+Expiring Soon: Próxima a vencer (< 15 días)
+Expired: Vencida
+Suspended: Suspendida por falta de pago
+Cancelled: Cancelada por el cliente
+Revoked: Revocada por QFlow Pro
+
+RF1024: Activación de Licencia
+
+Sistema envía email automático al cliente con:
+
+Clave de activación
+Credenciales de acceso temporal
+Enlace a documentación
+Enlace a portal de onboarding
+
+
+Cliente ingresa clave en la aplicación
+Sistema valida y activa licencia
+Habilita módulos según plan
+Inicia período de suscripción
+
+RF1025: Validación Continua
+
+Sistema verifica licencia cada vez que usuario inicia sesión
+Verificación en background cada 24 horas
+Validar que no se exceden límites (usuarios, sucursales, almacenamiento)
+Si licencia inválida o expirada: Bloquear acceso con mensaje apropiado
+
+RF1026: Alertas de Vencimiento
+
+30 días antes: Alerta informativa
+15 días antes: Recordatorio de renovación
+7 días antes: Alerta urgente
+3 días antes: Alerta crítica
+Día de vencimiento: Notificación final
+Día después: Suspensión (con período de gracia configurable)
+
+RF1027: Renovación de Licencias
+
+Automática: Si cliente tiene renovación automática activa
+
+Sistema procesa pago automáticamente
+Extiende período de licencia
+Envía confirmación
+
+
+Manual: Cliente renueva desde portal
+
+Realiza pago
+Sistema extiende licencia al confirmar pago
+
+
+
+RF1028: Suspensión de Licencias
+
+Motivos de suspensión:
+
+Falta de pago
+Violación de términos
+Solicitud del cliente (pausa temporal)
+Límites excedidos persistentemente
+
+
+Efectos:
+
+Bloqueo de acceso a la aplicación
+Datos preservados (no eliminados)
+Email de notificación al cliente
+Período de gracia antes de eliminación (configurable: 7-90 días)
+
+
+
+RF1029: Cancelación de Licencias
+
+Cliente solicita cancelación
+Opciones:
+
+Inmediata: Termina acceso de inmediato
+Al finalizar período: Mantiene acceso hasta fin del período pagado
+
+
+Sistema:
+
+Marca licencia como cancelada
+Deshabilita renovación automática
+Ofrece encuesta de salida (¿por qué canceló?)
+Ofrece exportación completa de datos
+Retiene datos por período configurable (30-90 días)
+
+
+
+RF1030: Upgrade/Downgrade de Planes
+
+Cliente solicita cambio de plan
+Sistema calcula prorrateo:
+
+Upgrade: Cobrar diferencia inmediatamente
+Downgrade: Aplicar crédito a próxima factura
+
+
+Ajustar límites automáticamente
+Si downgrade reduce límites por debajo de uso actual:
+
+Alertar al cliente
+Dar plazo para ajustar (ej: eliminar sucursales extras)
+Bloquear hasta que se ajuste
+
+
+
+RF1031: Control de Límites en Tiempo Real
+
+Sucursales:
+
+Bloquear creación si se alcanzó el máximo
+Mostrar: "Has alcanzado el límite de X sucursales. Upgrade tu plan para crear más"
+
+
+Usuarios:
+
+Bloquear creación de usuarios si se alcanzó límite
+Permitir desactivar usuarios para liberar espacio
+
+
+Almacenamiento:
+
+Alertas al 80%, 90% del límite
+Bloqueo de subida de archivos al 100%
+Sugerir upgrade o limpiar archivos
+
+
+Transacciones mensuales:
+
+Contador de transacciones realizadas
+Alertas al aproximarse al límite
+Si excede: Alertar para upgrade (no bloquear, pero notificar)
+
+
+
+RF1032: Clonación de Licencias
+
+Administrador puede duplicar licencia existente
+Útil para:
+
+Renovaciones
+Crear licencia similar para otro cliente
+Ambientes adicionales (staging, desarrollo)
+
+
+Hereda configuración pero genera nuevas claves
+
+RF1033: Historial Completo de Licencia
+
+Registro de todos los eventos:
+
+Creación
+Activación
+Renovaciones
+Cambios de plan
+Suspensiones/reactivaciones
+Modificaciones de límites
+Cancelación
+
+
+Usuario responsable de cada acción
+Fecha y hora exacta
+
+
+34.2 Dashboard de Licencias
+RF1034: Vista General de Licencias
+
+Métricas principales:
+
+Total de licencias activas
+Licencias en trial
+Licencias por vencer en 30 días
+Licencias vencidas/suspendidas
+Licencias canceladas este mes
+
+
+Gráficos:
+
+Distribución por plan (torta)
+Evolución de licencias en el tiempo (línea)
+Tasa de conversión trial → pago
+Tasa de renovación
+
+
+
+RF1035: Listado de Licencias
+
+Tabla con todas las licencias
+Columnas: Cliente, Plan, Estado, Fecha inicio, Fecha vencimiento, MRR
+Filtros:
+
+Por estado
+Por plan
+Por cliente
+Por fecha de vencimiento
+Por riesgo de churn
+
+
+Acciones rápidas: Ver detalle, Renovar, Suspender, Extender
+
+RF1036: Alertas y Notificaciones
+
+Notificaciones automáticas a administradores:
+
+Licencias por vencer esta semana
+Pagos fallidos
+Nuevas activaciones
+Cancelaciones
+Límites excedidos por clientes
+
+
+
+
+MÓDULO 35: PLANES Y PRECIOS
+35.1 Definición de Planes
+RF1037: Crear Plan de Suscripción
+
+Nombre del plan (ej: "Pro")
+Slug único (para URLs: "pro")
+Descripción corta y larga
+Precios:
+
+Precio mensual
+Precio anual (con descuento)
+Moneda (COP, USD, etc.)
+Precio de setup (opcional, pago único)
+
+
+Límites:
+
+Sucursales máximas
+Usuarios máximos
+Almacenamiento (GB)
+Transacciones mensuales
+Soporte (email, chat, prioritario, dedicado)
+
+
+Módulos incluidos: Selección múltiple de los 32 módulos
+Características destacadas: Lista de features para mostrar
+Visibilidad: Público (en página de pricing) o Privado (solo asignación manual)
+Estado: Activo/Inactivo
+Orden de visualización (para página de pricing)
+
+RF1038: Planes Predefinidos del Sistema
+
+Trial: 30 días gratis, límites básicos
+Basic: Plan inicial para negocios pequeños
+Pro: Plan más popular para negocios en crecimiento (marcar como recomendado)
+Enterprise: Plan avanzado con todo incluido
+Custom: Planes personalizados por cliente
+
+RF1039: Modificación de Planes
+
+Editar precios y límites de planes existentes
+Cambios NO afectan suscripciones activas (solo nuevas suscripciones)
+Opción de aplicar cambios a suscripciones existentes (con confirmación)
+Historial de cambios de precios
+
+RF1040: Archivar Planes
+
+Planes antiguos se archivan (no se eliminan)
+Suscripciones existentes siguen funcionando
+No se permite crear nuevas suscripciones con planes archivados
+
+
+35.2 Complementos (Addons)
+RF1041: Definir Addons
+
+Nombre del addon (ej: "Almacenamiento Extra")
+Descripción
+Tipo:
+
+Módulo adicional (ej: "Módulo de Marketing")
+Incremento de límite (ej: "+10 usuarios", "+50GB")
+Característica especial (ej: "Soporte 24/7", "Whitelabel")
+
+
+Precio mensual/anual
+Compatible con qué planes
+Estado: Activo/Inactivo
+
+RF1042: Asignar Addons a Clientes
+
+Desde licencia del cliente, agregar addon
+Seleccionar cantidad (si aplica)
+Cobra prorrateado en próxima factura
+Habilita característica inmediatamente
+
+RF1043: Remover Addons
+
+Cliente o admin puede remover addon
+Deshabilita característica
+Ajusta próxima factura (crédito o no cobrar más)
+
+
+35.3 Página de Pricing Pública
+RF1044: Configuración de Página de Pricing
+
+Mostrar planes públicos ordenados
+Destacar plan recomendado (ej: "Más Popular")
+Tabla comparativa de características
+Calculadora de precio (ej: "¿Cuántos usuarios necesitas?")
+FAQs sobre precios
+Testimonios de clientes
+Botones de acción:
+
+"Comenzar Trial Gratis"
+"Contratar Ahora"
+"Contactar Ventas" (para Enterprise)
+
+
+
+RF1045: Personalización de Pricing
+
+Mostrar precios en moneda local según país del visitante
+Alternar entre vista mensual/anual
+Mostrar ahorro al elegir anual
+Enlace a comparativa detallada
+
+
+MÓDULO 36: FACTURACIÓN SAAS
+36.1 Gestión de Facturación Recurrente
+RF1046: Proceso de Facturación Automática
+
+Sistema ejecuta proceso automático diario (CRON)
+Identifica suscripciones que deben renovarse hoy
+Para cada suscripción:
+
+Calcular monto (plan base + addons + impuestos)
+Generar factura
+Intentar cobro con método de pago registrado
+Si exitoso:
+
+Marcar factura como pagada
+Extender período de suscripción
+Enviar recibo por email
+
+
+Si falla:
+
+Marcar factura como pendiente
+Notificar al cliente
+Programar reintento (días 3, 5, 7)
+Si falla todos los reintentos: Suspender suscripción
+
+
+
+
+
+RF1047: Generación de Facturas
+
+Factura incluye:
+
+Número de factura consecutivo
+Fecha de emisión
+Cliente empresarial (datos fiscales)
+Período facturado (ej: "01 Ene 2026 - 31 Ene 2026")
+Detalle de líneas:
+
+Plan contratado (ej: "Plan Pro - Mensual")
+Addons activos
+Ajustes prorrateados (si hubo upgrade/downgrade)
+Descuentos aplicados
+
+
+Subtotal
+Impuestos (IVA si aplica)
+Total a pagar
+Método de pago utilizado
+Estado: Pagada, Pendiente, Vencida
+
+
+Formato PDF descargable
+Envío automático por email
+
+RF1048: Facturación Prorrateada
+
+Al hacer upgrade a mitad de período:
+
+Calcular días restantes del período actual
+Cobrar diferencia prorrateada entre planes
+Generar factura inmediata
+
+
+Al hacer downgrade:
+
+Calcular crédito proporcional
+Aplicar crédito a próxima factura
+Informar al cliente del crédito generado
+
+
+
+RF1049: Reintentos de Cobro
+
+Si pago falla, configurar política de reintentos:
+
+Día 1: Notificar al cliente
+Día 3: Primer reintento automático
+Día 5: Segundo reintento
+Día 7: Tercer reintento
+Día 8: Si falla, suspender suscripción
+
+
+Cliente puede actualizar método de pago en cualquier momento
+
+RF1050: Facturas Manuales
+
+Administrador puede generar factura manual para:
+
+Servicios profesionales
+Implementaciones personalizadas
+Capacitaciones
+Ajustes especiales
+
+
+Enviar factura al cliente
+Registrar pago cuando se reciba
+
+
+36.2 Gestión de Pagos
+RF1051: Métodos de Pago Soportados
+
+Tarjeta de crédito/débito
+Transferencia bancaria
+Pagos en línea (PSE, Nequi, Daviplata)
+Efectivo (en puntos autorizados)
+Cheque (para Enterprise)
+
+RF1052: Registro de Método de Pago del Cliente
+
+Cliente registra método de pago principal desde su portal
+Para tarjeta:
+
+Tokenización segura (NO almacenar número completo)
+Guardar últimos 4 dígitos y marca (Visa, Mastercard)
+Fecha de expiración
+
+
+Para transferencia:
+
+Datos bancarios del cliente (para referencia)
+
+
+Verificación con micro-depósito o cargo de $1 (opcional)
+
+RF1053: Procesamiento de Pagos
+
+Integración con pasarela de pagos (ej: Wompi, PayU, Stripe)
+Al procesar pago:
+
+Enviar monto, moneda, referencia
+Recibir confirmación o rechazo
+Registrar transacción con ID de pasarela
+Actualizar estado de factura
+
+
+Si pago exitoso:
+
+Generar recibo
+Enviar confirmación por email
+Registrar en contabilidad SaaS
+
+
+Si pago rechazado:
+
+Registrar motivo (fondos insuficientes, tarjeta expirada, etc.)
+Notificar al cliente
+Sugerir actualizar método de pago
+
+
+
+RF1054: Historial de Transacciones
+
+Registro completo de todas las transacciones:
+
+Fecha y hora
+Monto
+Moneda
+Método de pago
+Estado (exitosa, rechazada, pendiente, reembolsada)
+ID de transacción de pasarela
+Factura asociada
+
+
+Búsqueda y filtros
+Exportación para auditoría
+
+RF1055: Reembolsos
+
+Administrador puede procesar reembolso (total o parcial)
+Motivo obligatorio
+Procesar reembolso a través de pasarela
+Generar nota de crédito
+Actualizar factura original
+Notificar al cliente
+
+RF1056: Disputas y Chargebacks
+
+Registrar disputas reportadas por pasarela
+Estado: Abierta, En revisión, Resuelta (a favor/en contra)
+Adjuntar evidencia
+Comunicación con cliente
+Resolución final
+
+
+MÓDULO 37: GESTIÓN DE PAGOS Y COBROS
+37.1 Dashboard de Pagos
+RF1057: Métricas de Pagos
+
+Ingresos:
+
+Ingresos del mes actual
+Proyección de ingresos del mes
+Comparativa vs mes anterior
+MRR (Monthly Recurring Revenue)
+ARR (Annual Recurring Revenue)
+
+
+Pagos pendientes:
+
+Facturas vencidas (monto total)
+Facturas por vencer esta semana
+Clientes en mora
+
+
+Tasa de éxito de pagos:
+
+% de pagos exitosos
+% de pagos rechazados
+Motivos principales de rechazo
+
+
+
+RF1058: Listado de Facturas
+
+Todas las facturas generadas
+Filtros: Estado, cliente, fecha, monto
+Acciones: Ver PDF, Enviar por email, Marcar como pagada, Anular
+
+RF1059: Gestión de Facturas Vencidas
+
+Lista de facturas vencidas
+Ordenar por antigüedad
+Acciones de cobro:
+
+Enviar recordatorio por email
+Llamar al cliente (registrar llamada)
+Suspender licencia
+Negociar plan de pagos
+Escribir off (pérdida)
+
+
+
+
+37.2 Planes de Pago
+RF1060: Crear Plan de Pagos
+
+Para clientes con dificultades de pago
+Dividir deuda en cuotas
+Establecer fechas de pago
+Intereses (opcional)
+Requiere aprobación de cliente y QFlow Pro
+Generar calendario de pagos
+Registrar pagos de cuotas
+
+RF1061: Seguimiento de Plan de Pagos
+
+Estado de cada cuota (pagada, pendiente, vencida)
+Alertas de cuotas próximas
+Si incumple plan: Suspender y renegociar
+
+
+MÓDULO 38: SOPORTE TÉCNICO
+38.1 Sistema de Tickets
+RF1062: Creación de Tickets
+
+Por el cliente:
+
+Desde portal del cliente
+Categorías: Técnico, Facturación, Consulta, Feature Request, Bug
+Prioridad: Baja, Media, Alta, Crítica
+Descripción del problema
+Adjuntar capturas/archivos
+
+
+Por administrador QFlow Pro:
+
+Crear ticket en nombre del cliente
+Ej: Tras llamada telefónica
+
+
+
+RF1063: Asignación de Tickets
+
+Asignación automática:
+
+Por categoría (técnico → equipo técnico, facturación → finanzas)
+Round-robin entre agentes disponibles
+
+
+Asignación manual:
+
+Supervisor asigna a agente específico
+
+
+Re-asignación:
+
+Agente puede escalar o transferir ticket
+
+
+
+RF1064: Estados de Tickets
+
+Nuevo: Recién creado
+Abierto: Asignado a agente
+En Progreso: Agente trabajando en solución
+Esperando Cliente: Requiere información del cliente
+Resuelto: Solución implementada
+Cerrado: Cliente confirmó resolución
+Reabierto: Cliente indica que problema persiste
+
+RF1065: Comunicación en Tickets
+
+Conversación threaded (hilos)
+Cliente y agente pueden responder
+Notificaciones por email de cada respuesta
+Adjuntar archivos
+Mencionar otros agentes (@nombre)
+Cambiar estado desde conversación
+
+RF1066: SLA (Service Level Agreement)
+
+Definir tiempos de respuesta según plan:
+
+Basic: Primera respuesta en 48 horas
+Pro: Primera respuesta en 24 horas
+Enterprise: Primera respuesta en 4 horas
+
+
+Alertas cuando se acerca límite de SLA
+Reporte de cumplimiento de SLA
+
+RF1067: Base de Conocimientos
+
+Artículos de ayuda públicos
+Categorías: Primeros pasos, Tutoriales, Preguntas Frecuentes, Solución de problemas
+Búsqueda de artículos
+Vincular artículos a tickets (sugerencias automáticas)
+Métricas: Artículos más vistos, más útiles
+
+RF1068: Satisfacción del Cliente
+
+Al cerrar ticket, enviar encuesta:
+
+¿Se resolvió tu problema? (Sí/No)
+Califica la atención (1-5 estrellas)
+Comentarios adicionales (opcional)
+
+
+Métricas de satisfacción (CSAT)
+Alertas de calificaciones negativas
+
+
+38.2 Chat en Vivo (Opcional)
+RF1069: Chat en Tiempo Real
+
+Widget de chat en portal del cliente
+Horario de atención configurado
+Fuera de horario: Opción de dejar mensaje o crear ticket
+Agentes ven cola de chats
+Transferir chat entre agentes
+Convertir chat en ticket si es complejo
+
+
+MÓDULO 39: ONBOARDING DE CLIENTES
+39.1 Proceso de Onboarding
+RF1070: Wizard de Configuración Inicial
+Al activar licencia, cliente entra a wizard guiado:
+
+Bienvenida: Video introductorio
+Configurar empresa:
+
+Nombre, logo, datos fiscales
+Zona horaria, moneda
+
+
+Crear primera sucursal:
+
+Nombre, dirección
+
+
+Configurar categorías de productos:
+
+Usar plantillas predefinidas o crear propias
+
+
+Crear primer usuario administrador:
+
+Nombre, email, contraseña
+
+
+Configurar métodos de pago aceptados
+Importar datos (opcional):
+
+Productos desde Excel
+Clientes desde Excel
+
+
+Tour interactivo de la aplicación
+Finalización: "¡Listo para empezar!"
+
+RF1071: Asistencia de Onboarding
+
+Para planes Pro y Enterprise:
+
+Sesión de onboarding en vivo (1-2 horas)
+Agente de QFlow Pro guía al cliente
+Programar sesión desde portal
+Videollamada integrada o Zoom/Meet
+
+
+
+RF1072: Checklist de Onboarding
+
+Lista de tareas recomendadas:
+
+✅ Configurar empresa
+✅ Crear sucursal
+✅ Agregar 5 productos
+✅ Registrar primer cliente
+✅ Hacer primera venta
+✅ Cerrar primera caja
+✅ Invitar empleados
+
+
+Mostrar progreso (ej: "70% completado")
+Recompensa al completar (ej: descuento, upgrade temporal)
+
+
+MÓDULO 40: MÉTRICAS DE NEGOCIO SAAS
+40.1 KPIs Principales
+RF1073: Dashboard Ejecutivo de Métricas
+Visualización de métricas clave para equipo de QFlow Pro:
+Métricas de Ingresos:
+
+MRR (Monthly Recurring Revenue):
+
+Ingresos recurrentes mensuales
+Evolución en el tiempo
+Desglose por plan
+
+
+ARR (Annual Recurring Revenue):
+
+MRR × 12
+
+
+New MRR: MRR de nuevos clientes este mes
+Expansion MRR: MRR adicional de upgrades
+Churned MRR: MRR perdido por cancelaciones
+Net MRR Growth: New + Expansion - Churned
+
+RF1074: Métricas de Clientes
+
+Total clientes activos
+Nuevos clientes este mes
+Churn Rate (Tasa de Cancelación):
+
+% de clientes que cancelaron este mes
+Churn mensual y anual
+
+
+Customer Lifetime Value (LTV):
+
+Valor total que un cliente aporta durante su vida
+Fórmula: ARPU / Churn Rate
+
+
+Cohortes de clientes:
+
+Retención por mes de adquisición
+Gráfico de cohortes
+
+
+
+RF1075: Métricas de Adquisición
+
+CAC (Customer Acquisition Cost):
+
+Costo de adquirir un cliente
+Fórmula: (Gasto Marketing + Ventas) / Clientes Nuevos
+
+
+CAC Payback Period:
+
+Meses para recuperar CAC
+
+
+Trial to Paid Conversion Rate:
+
+% de trials que se convierten en pagos
+
+
+Clientes por fuente:
+
+Orgánico, referido, marketing, ventas directa
+
+
+
+RF1076: Métricas de Producto
+
+Usuarios activos por cliente (promedio)
+Transacciones promedio por cliente
+Uso de almacenamiento promedio
+Módulos más usados
+Features más solicitadas
+
+RF1077: Métricas de Soporte
+
+Tickets abiertos / cerrados
+Tiempo promedio de resolución
+Cumplimiento de SLA
+CSAT (Satisfacción del cliente)
+
+
+40.2 Reportes y Análisis
+RF1078: Reporte de Salud del Negocio
+
+Resumen ejecutivo mensual
+Comparativa vs mes anterior
+Tendencias
+Alertas (ej: churn aumentando)
+
+RF1079: Proyecciones Financieras
+
+Proyección de MRR (próximos 3, 6, 12 meses)
+Basado en tendencias históricas
+Escenarios: Optimista, realista, pesimista
+
+RF1080: Análisis de Churn
+
+Clientes en riesgo de cancelar (scoring)
+Motivos principales de cancelación
+Acciones de retención sugeridas
+
+
+MÓDULO 41: CONTABILIDAD DEL NEGOCIO SAAS
+41.1 Contabilidad de Licencias e Ingresos
+RF1081: Registro Contable Automático
+Al generar factura de suscripción:
+
+Asiento contable automático:
+
+Débito: Cuentas por Cobrar
+Crédito: Ingresos por Suscripciones
+
+
+Al recibir pago:
+
+Débito: Banco/Efectivo
+Crédito: Cuentas por Cobrar
+
+
+
+RF1082: Ingresos Diferidos
+
+Al cobrar suscripción anual:
+
+Registrar como "Ingreso Diferido"
+Reconocer ingreso mensualmente (1/12)
+
+
+Reporte de ingresos diferidos pendientes
+
+RF1083: Cuentas Contables Específicas
+
+Ingresos:
+
+Ingresos por suscripciones
+Ingresos por addons
+Ingresos por servicios profesionales
+
+
+Gastos:
+
+Costo de servidores (Supabase, hosting)
+Comisiones de pasarelas de pago
+Gastos de marketing
+Salarios equipo QFlow Pro
+Soporte y operaciones
+
+
+Activos:
+
+Cuentas por cobrar clientes
+
+
+Pasivos:
+
+Ingresos diferidos
+Cuentas por pagar proveedores
+
+
+
+RF1084: Reportes Financieros SaaS
+
+Estado de Resultados (P&L) del negocio QFlow Pro
+Balance General
+Flujo de Efectivo
+Análisis de márgenes
+
+
+MÓDULO 42: ADMINISTRACIÓN GLOBAL
+42.1 Configuración del Sistema
+RF1085: Parámetros Generales
+
+Nombre de la empresa (QFlow Pro)
+Logo y branding
+Datos fiscales
+Datos de contacto
+Términos de servicio
+Política de privacidad
+GDPR compliance
+
+RF1086: Configuración de Email
+
+Templates de emails:
+
+Bienvenida
+Activación de licencia
+Vencimiento próximo
+Suspensión
+Factura
+Recibo de pago
+
+
+SMTP configurado
+Remitente y firma
+
+RF1087: Configuración de Notificaciones
+
+Qué eventos generan notificaciones
+Destinatarios por tipo de notificación
+Canales: Email, Slack, SMS
+
+RF1088: Gestión de Usuarios Internos
+
+Equipo de QFlow Pro:
+
+Super Admin
+Ventas
+Soporte
+Finanzas
+Desarrollo
+
+
+Roles y permisos específicos
+Historial de acciones
+
+
+3. PLATAFORMA 2: PORTAL EMPRESARIAL (Cliente)
+3.1 Propósito
+Plataforma para que cada empresa cliente (ej: Quesera D&G) administre su propio negocio con TODAS las funcionalidades del ERP.
+3.2 Usuarios de esta Plataforma
+
+Dueño de la Empresa
+Administrador de Sucursal
+Vendedor/Cajero
+Supervisor
+Contador
+Empleados diversos
+
+3.3 Control de Acceso Multi-Nivel
+
+MÓDULO 43: ARQUITECTURA DE PERMISOS
+43.1 Jerarquía de Roles
+RF1089: Definición de Roles del Sistema
+JERARQUÍA DE ROLES:
+
+1. DUEÑO (Owner)
+   └─ Acceso TOTAL a TODO
+   └─ Puede ver y administrar TODAS las sucursales
+   └─ Puede crear/eliminar sucursales
+   └─ Puede crear/modificar roles
+   └─ Acceso a datos corporativos consolidados
+
+2. ADMINISTRADOR CORPORATIVO
+   └─ Acceso a funciones administrativas globales
+   └─ Puede ver todas las sucursales
+   └─ NO puede eliminar sucursales
+   └─ Gestiona usuarios globales
+
+3. ADMINISTRADOR DE SUCURSAL
+   └─ Acceso COMPLETO a SU sucursal asignada
+   └─ NO puede ver otras sucursales
+   └─ Puede crear usuarios de su sucursal
+   └─ Reportes de su sucursal
+
+4. SUPERVISOR DE SUCURSAL
+   └─ Acceso a operaciones de su sucursal
+   └─ Puede aprobar descuentos, devoluciones
+   └─ NO puede modificar configuración
+   └─ Reportes limitados
+
+5. VENDEDOR/CAJERO
+   └─ Acceso a POS de su sucursal
+   └─ Registrar ventas
+   └─ Consultar inventario (solo lectura)
+   └─ NO puede modificar precios
+   └─ NO puede anular facturas sin autorización
+
+6. CONTADOR
+   └─ Acceso a módulos contables y financieros
+   └─ Puede ver todas las sucursales (datos contables)
+   └─ NO puede modificar transacciones operativas
+
+7. EMPLEADO OPERATIVO
+   └─ Acceso limitado según tareas específicas
+   └─ Ej: Recepción de mercancía, control de inventario
+RF1090: Asignación de Roles
+
+Dueño asigna rol a cada usuario al crearlo
+Un usuario puede tener múltiples roles (combinación)
+Rol determina qué módulos y funciones puede acceder
+
+
+43.2 Permisos Granulares
+RF1091: Matriz de Permisos
+Para cada módulo y función, definir permisos:
+
+Ver (Read): Puede consultar datos
+Crear (Create): Puede crear nuevos registros
+Editar (Update): Puede modificar registros existentes
+Eliminar (Delete): Puede eliminar registros
+Aprobar: Puede aprobar operaciones que requieren autorización
+Exportar: Puede exportar datos
+Configurar: Puede cambiar configuración del módulo
+
+Ejemplo - Módulo de Inventario:
+RolVerCrearEditarEliminarAjustarExportarDueño✅✅✅✅✅✅Admin Sucursal✅✅✅✅✅✅Supervisor✅✅✅❌⚠️ (requiere aprobación)✅Vendedor✅❌❌❌❌❌
+RF1092: Restricción por Sucursal
+
+Usuarios tienen sucursal(es) asignada(s)
+Sistema filtra automáticamente datos por sucursal del usuario
+Administrador de Sucursal A:
+
+Solo ve inventario de Sucursal A
+Solo ve ventas de Sucursal A
+NO ve datos de Sucursal B
+
+
+Dueño y Admin Corporativo:
+
+Ven TODAS las sucursales
+Pueden filtrar por sucursal específica
+
+
+
+RF1093: Restricción por Datos Sensibles
+
+Precios de compra: Solo Admin y Dueño
+Márgenes de utilidad: Solo Admin y Dueño
+Salarios: Solo Dueño y RRHH
+Estados financieros: Solo Dueño, Admin Corp, Contador
+
+RF1094: Aprobaciones Multi-Nivel
+Ciertas operaciones requieren aprobación:
+
+Cajero aplica descuento >10%: Requiere código de Supervisor
+Anulación de factura: Requiere aprobación de Admin Sucursal
+Ajuste de inventario >X monto: Requiere aprobación
+
+RF1095: Logs de Auditoría
+
+Registrar TODA acción con:
+
+Usuario que realizó la acción
+Rol que tenía en ese momento
+Sucursal desde donde actuó
+Fecha y hora exacta
+IP/dispositivo
+Acción realizada
+Datos antes y después (para ediciones)
+
+
+
+
+3.4 Funcionalidades Disponibles
+RF1096: Portal del Cliente Empresarial
+El cliente empresarial tiene acceso a TODOS los 32 módulos originales del ERP (inventario, ventas, compras, contabilidad, nómina, etc.) MÁS módulos adicionales de gestión:
+
+MÓDULO 44: GESTIÓN DE MI LICENCIA (Vista Cliente)
+RF1097: Ver Estado de Mi Licencia
+
+Plan actual contratado
+Fecha de inicio y vencimiento
+Días restantes
+Límites y uso actual:
+
+Sucursales: X de Y usadas
+Usuarios: X de Y usados
+Almacenamiento: X GB de Y GB usados
+Transacciones este mes: X de Y
+
+
+Módulos habilitados
+
+RF1098: Renovar Licencia
+
+Botón "Renovar Ahora"
+Seleccionar período (mensual/anual)
+Procesar pago
+Confirmación de renovación
+
+RF1099: Upgrade/Downgrade de Plan
+
+Ver planes disponibles
+Solicitar cambio de plan
+Ver cálculo de costo prorrateado
+Confirmar cambio
+
+RF1100: Agregar Addons
+
+Ver addons disponibles
+Seleccionar y agregar
+Cargo en próxima factura
+
+RF1101: Gestionar Método de Pago
+
+Ver método de pago actual
+Actualizar tarjeta
+Cambiar método de pago
+
+RF1102: Historial de Facturas
+
+Ver todas las facturas
+Descargar PDF
+Reenviar por email
+
+
+MÓDULO 45: GESTIÓN DE MI EMPRESA
+RF1103: Configuración de la Empresa
+
+Datos generales (nombre, NIT, dirección)
+Logo de la empresa
+Colores corporativos
+Zona horaria, moneda, idioma
+
+RF1104: Gestión de Sucursales
+
+Dueño puede:
+
+Crear nuevas sucursales (si no excede límite)
+Editar sucursales existentes
+Desactivar sucursales
+Asignar administrador a cada sucursal
+
+
+Admin de Sucursal puede:
+
+Solo editar datos de SU sucursal
+NO puede crear ni eliminar
+
+
+
+RF1105: Gestión de Usuarios y Empleados
+
+Dueño/Admin Corp puede:
+
+Ver todos los usuarios de todas las sucursales
+Crear usuarios en cualquier sucursal
+Asignar roles
+Activar/desactivar usuarios
+
+
+Admin de Sucursal puede:
+
+Ver usuarios de su sucursal
+Crear usuarios solo para su sucursal
+Asignar roles limitados (no puede crear Admins)
+
+
+
+RF1106: Gestión de Roles Personalizados
+
+Dueño puede crear roles custom
+Seleccionar permisos específicos por módulo
+Asignar rol custom a usuarios
+
+
+MÓDULO 46: SOPORTE (Vista Cliente)
+RF1107: Crear Ticket de Soporte
+
+Cliente crea ticket desde su portal
+Categoría, prioridad, descripción
+Adjuntar archivos
+Ver estado del ticket en tiempo real
+
+RF1108: Centro de Ayuda
+
+Acceso a base de conocimientos
+Búsqueda de artículos
+Tutoriales en video
+Preguntas frecuentes
+
+RF1109: Chat con Soporte
+
+Iniciar chat (si disponible según plan)
+Historial de conversaciones
+
+
+4. PLATAFORMA 3: APP CLIENTE FINAL (B2B)
+4.1 Propósito
+App móvil y portal web para que los clientes mayoristas de la empresa (ej: tiendas en Altos del Rosario que compran a Quesera D&G) puedan hacer pedidos y gestionar su cuenta.
+4.2 Usuarios
+
+Clientes mayoristas (tiendas, negocios)
+Clientes minoristas (opcional, si la empresa lo habilita)
+
+
+MÓDULO 47: PORTAL DEL CLIENTE FINAL
+47.1 Registro y Acceso
+RF1110: Registro de Cliente
+
+Cliente mayorista se registra:
+
+Nombre del negocio
+NIT (opcional)
+Nombre del contacto
+Email
+Teléfono/WhatsApp
+Dirección de entrega
+Tipo de cliente solicitado: Minorista / Mayorista
+
+
+Estado inicial: "Pendiente de Aprobación"
+
+RF1111: Aprobación de Cliente
+
+Notificación a Admin de la empresa (Quesera D&G)
+Admin revisa solicitud
+Aprueba o rechaza
+Si mayorista: Verifica que sea negocio real
+Asigna tipo de cliente definitivo
+Cliente recibe notificación de aprobación
+
+RF1112: Inicio de Sesión
+
+Email y contraseña
+Recuperación de contraseña (OTP + Magic Link)
+Sesión persistente
+
+
+47.2 Catálogo de Productos
+RF1113: Ver Catálogo
+
+Cliente ve productos disponibles
+Productos mostrados según su tipo:
+
+Minorista: Ve precios al por menor, productos minoristas
+Mayorista: Ve precios al por mayor, productos mayoristas
+
+
+NO puede cambiar de tipo sin aprobación
+
+RF1114: Búsqueda y Filtros
+
+Buscar por nombre, código, categoría
+Filtrar por:
+
+Categoría (Lácteos, Cárnicos, Avícola, etc.)
+Marca
+Disponibilidad (en stock / agotado)
+Rango de precio
+
+
+Agrupar por categoría o marca
+
+RF1115: Detalle de Producto
+
+Foto del producto
+Nombre, descripción
+Precio según tipo de cliente
+Disponibilidad (stock disponible o indicador)
+Unidad de medida
+Cantidad mínima de pedido (para mayoristas)
+Botón "Agregar al Carrito"
+
+47.3 Carrito de Compras
+RF1116: Agregar Productos al Carrito
+
+Seleccionar cantidad deseada
+Validar cantidad mínima (mayoristas)
+Agregar al carrito
+Ver total parcial
+
+RF1117: Gestión del Carrito
+
+Ver productos en carrito
+Modificar cantidades
+Eliminar productos
+Ver subtotal actualizado
+Botón "Proceder al Checkout"
+
+RF1118: Guardar Carrito
+
+Carrito se guarda automáticamente
+Cliente puede salir y volver, carrito persiste
+Opción "Guardar para después"
+
+
+47.4 Proceso de Pedido
+RF1119: Checkout - Datos de Entrega
+
+Seleccionar dirección de entrega:
+
+Usar dirección registrada
+Agregar nueva dirección
+
+
+Especificar instrucciones de entrega
+Contacto para coordinar entrega
+
+RF1120: Checkout - Resumen del Pedido
+
+Lista de productos con cantidades y precios
+Subtotal de mercancía
+Gastos de logística (si aplica):
+
+Sistema calcula automáticamente según ruta
+Muestra desglose: transporte fluvial, ciclo taxi, etc.
+O indica "Gastos de envío serán confirmados"
+
+
+Impuestos (si aplica)
+Total a pagar
+
+RF1121: Confirmar Pedido
+
+Cliente revisa todo
+Botón "Confirmar Pedido"
+Sistema genera número de pedido único
+Estado inicial: "Solicitado"
+Genera factura proforma
+Envía confirmación por email/WhatsApp
+
+
+MÓDULO 48: GESTIÓN DE PEDIDOS (Cliente Final)
+48.1 Historial de Pedidos
+RF1122: Ver Mis Pedidos
+
+Lista de todos los pedidos realizados
+Filtros:
+
+Por estado
+Por fecha
+Por monto
+
+
+Ordenar: Más recientes primero
+
+RF1123: Detalle de Pedido
+
+Número de pedido
+Fecha de solicitud
+Productos solicitados
+Cantidades y precios
+Total
+Estado actual:
+
+Solicitado
+Confirmado
+En preparación
+Listo para envío
+En tránsito
+Entregado
+Cancelado
+
+
+Historial de cambios de estado (línea de tiempo)
+
+RF1124: Seguimiento en Tiempo Real
+
+Notificaciones push cuando cambia estado
+Indicador visual de progreso
+Fecha estimada de entrega
+
+RF1125: Cancelar Pedido
+
+Opción de cancelar pedido antes de que sea confirmado
+Motivo de cancelación (opcional)
+Confirmación requerida
+
+RF1126: Solicitar Modificación
+
+Cliente puede solicitar cambio en pedido confirmado
+Agregar/quitar productos
+Cambiar cantidades
+Requiere aprobación de la empresa
+
+
+48.2 Notificaciones de Pedidos
+RF1127: Notificaciones Automáticas
+Cliente recibe notificaciones cuando:
+
+Pedido confirmado por la empresa
+Pedido en preparación
+Pedido listo para envío / salió para entrega
+Pedido entregado
+Pedido cancelado o con problema
+Mensajes de la empresa sobre el pedido
+
+RF1128: Confirmación de Recepción
+
+Cuando pedido está marcado como "Entregado"
+Cliente puede confirmar: "Sí, recibí el pedido"
+Opción de reportar problema: "No recibí" / "Llegó incompleto" / "Producto dañado"
+
+
+MÓDULO 49: GESTIÓN DE CRÉDITOS Y ESTADO DE CUENTA
+49.1 Ver Estado de Cuenta
+RF1129: Dashboard de Mi Cuenta
+
+Límite de crédito: Total autorizado
+Crédito disponible: Cuánto puede usar
+Crédito utilizado: Cuánto debe actualmente
+Facturas pendientes de pago:
+
+Lista de facturas
+Monto de cada una
+Fecha de vencimiento
+Días vencida (si aplica)
+
+
+Próximos vencimientos (alertas visuales)
+
+RF1130: Detalle de Facturas
+
+Ver cada factura pendiente:
+
+Número de factura
+Fecha de emisión
+Pedido asociado
+Productos
+Total
+Fecha de vencimiento
+Estado: Pendiente / Vencida / Pagada
+
+
+Descargar PDF de factura
+Opción "Registrar Pago"
+
+RF1131: Historial de Pagos
+
+Todos los pagos realizados
+Fecha, monto, método, referencia
+Factura(s) pagada(s)
+Estado: Pendiente de confirmación / Confirmado
+
+
+49.2 Registro de Pagos
+RF1132: Cliente Registra Pago
+Cuando cliente paga una factura (fuera del sistema):
+
+Selecciona factura(s) a pagar
+Registra información del pago:
+
+Fecha en que realizó el pago
+Monto pagado
+Método de pago usado:
+
+Efectivo (dónde lo entregó)
+Transferencia bancaria
+Nequi/Daviplata
+Otro
+
+
+Número de referencia o transacción
+Comprobante de pago (opcional):
+
+Subir foto del comprobante
+Captura de transferencia
+Foto de recibo
+
+
+Observaciones adicionales
+
+
+Botón "Solicitar Confirmación"
+
+RF1133: Estado: Pago Pendiente de Confirmación
+
+Sistema marca pago como "Pendiente de confirmación"
+Factura queda en estado: "Pago reportado - En verificación"
+Se envía notificación a la empresa (vendedor/admin)
+Cliente ve: "Tu pago está siendo verificado"
+
+RF1134: Notificación de Confirmación
+Cliente es notificado cuando:
+
+Pago aprobado: "Tu pago fue confirmado. ¡Gracias!"
+Pago rechazado: "No hemos podido verificar tu pago. Razón: [...]"
+
+Sugerencia: Verificar datos, contactar al vendedor
+Opción de volver a registrar el pago
+
+
+
+RF1135: Pagos Parciales
+
+Cliente puede hacer pagos parciales (abonos)
+Registra cada abono
+Sistema actualiza saldo pendiente
+Muestra cuánto falta por pagar
+
+
+MÓDULO 50: COMUNICACIÓN CLIENTE-EMPRESA
+50.1 Mensajería Directa
+RF1136: Chat con la Empresa
+
+Cliente puede enviar mensajes a la empresa
+Temas:
+
+Consultas sobre productos
+Estado de pedido
+Problemas con entrega
+Solicitudes especiales
+
+
+Empresa responde desde su portal
+Notificaciones de nuevos mensajes
+
+RF1137: Notificaciones de la Empresa
+
+Empresa puede enviar mensajes broadcast:
+
+Nuevos productos
+Promociones
+Cambios de precios
+Avisos importantes
+
+
+Cliente ve notificaciones en su app
+
+
+50.2 Soporte al Cliente
+RF1138: Crear Ticket de Soporte
+
+Cliente puede crear ticket de soporte:
+
+Problema con pedido
+Producto defectuoso
+Consulta general
+
+
+Seguimiento del ticket
+Comunicación por el ticket
+
+RF1139: Centro de Ayuda
+
+FAQs para clientes
+Cómo hacer un pedido
+Cómo pagar
+Políticas de devolución
+Contacto de emergencia
+
+
+47.3 Carrito de Compras
+RF1116: Agregar Productos al Carrito
+
+Seleccionar cantidad deseada
+Validar cantidad mínima (mayoristas)
+Agregar al carrito
+Ver total parcial
+
+RF1117: Gestión del Carrito
+
+Ver productos en carrito
+Modificar cantidades
+Eliminar productos
+Ver subtotal actualizado
+Botón "Proceder al Checkout"
+
+RF1118: Guardar Carrito
+
+Carrito se guarda automáticamente
+Cliente puede salir y volver, carrito persiste
+Opción "Guardar para después"
+
+
+47.4 Proceso de Pedido
+RF1119: Checkout - Datos de Entrega
+
+Seleccionar dirección de entrega:
+
+Usar dirección registrada
+Agregar nueva dirección
+
+
+Especificar instrucciones de entrega
+Contacto para coordinar entrega
+
+RF1120: Checkout - Resumen del Pedido
+
+Lista de productos con cantidades y precios
+Subtotal de mercancía
+Gastos de logística (si aplica):
+
+Sistema calcula automáticamente según ruta
+Muestra desglose: transporte fluvial, ciclo taxi, etc.
+O indica "Gastos de envío serán confirmados"
+
+
+Impuestos (si aplica)
+Total a pagar
+
+RF1121: Confirmar Pedido
+
+Cliente revisa todo
+Botón "Confirmar Pedido"
+Sistema genera número de pedido único
+Estado inicial: "Solicitado"
+Genera factura proforma
+Envía confirmación por email/WhatsApp
+
+
+MÓDULO 48: GESTIÓN DE PEDIDOS (Cliente Final)
+48.1 Historial de Pedidos
+RF1122: Ver Mis Pedidos
+
+Lista de todos los pedidos realizados
+Filtros:
+
+Por estado
+Por fecha
+Por monto
+
+
+Ordenar: Más recientes primero
+
+RF1123: Detalle de Pedido
+
+Número de pedido
+Fecha de solicitud
+Productos solicitados
+Cantidades y precios
+Total
+Estado actual:
+
+Solicitado
+Confirmado
+En preparación
+Listo para envío
+En tránsito
+Entregado
+Cancelado
+
+
+Historial de cambios de estado (línea de tiempo)
+
+RF1124: Seguimiento en Tiempo Real
+
+Notificaciones push cuando cambia estado
+Indicador visual de progreso
+Fecha estimada de entrega
+
+RF1125: Cancelar Pedido
+
+Opción de cancelar pedido antes de que sea confirmado
+Motivo de cancelación (opcional)
+Confirmación requerida
+
+RF1126: Solicitar Modificación
+
+Cliente puede solicitar cambio en pedido confirmado
+Agregar/quitar productos
+Cambiar cantidades
+Requiere aprobación de la empresa
+
+
+48.2 Notificaciones de Pedidos
+RF1127: Notificaciones Automáticas
+Cliente recibe notificaciones cuando:
+
+Pedido confirmado por la empresa
+Pedido en preparación
+Pedido listo para envío / salió para entrega
+Pedido entregado
+Pedido cancelado o con problema
+Mensajes de la empresa sobre el pedido
+
+RF1128: Confirmación de Recepción
+
+Cuando pedido está marcado como "Entregado"
+Cliente puede confirmar: "Sí, recibí el pedido"
+Opción de reportar problema: "No recibí" / "Llegó incompleto" / "Producto dañado"
+
+
+MÓDULO 49: GESTIÓN DE CRÉDITOS Y ESTADO DE CUENTA
+49.1 Ver Estado de Cuenta
+RF1129: Dashboard de Mi Cuenta
+
+Límite de crédito: Total autorizado
+Crédito disponible: Cuánto puede usar
+Crédito utilizado: Cuánto debe actualmente
+Facturas pendientes de pago:
+
+Lista de facturas
+Monto de cada una
+Fecha de vencimiento
+Días vencida (si aplica)
+
+
+Próximos vencimientos (alertas visuales)
+
+RF1130: Detalle de Facturas
+
+Ver cada factura pendiente:
+
+Número de factura
+Fecha de emisión
+Pedido asociado
+Productos
+Total
+Fecha de vencimiento
+Estado: Pendiente / Vencida / Pagada
+
+
+Descargar PDF de factura
+Opción "Registrar Pago"
+
+RF1131: Historial de Pagos
+
+Todos los pagos realizados
+Fecha, monto, método, referencia
+Factura(s) pagada(s)
+Estado: Pendiente de confirmación / Confirmado
+
+
+49.2 Registro de Pagos
+RF1132: Cliente Registra Pago
+Cuando cliente paga una factura (fuera del sistema):
+
+Selecciona factura(s) a pagar
+Registra información del pago:
+
+Fecha en que realizó el pago
+Monto pagado
+Método de pago usado:
+
+Efectivo (dónde lo entregó)
+Transferencia bancaria
+Nequi/Daviplata
+Otro
+
+
+Número de referencia o transacción
+Comprobante de pago (opcional):
+
+Subir foto del comprobante
+Captura de transferencia
+Foto de recibo
+
+
+Observaciones adicionales
+
+
+Botón "Solicitar Confirmación"
+
+RF1133: Estado: Pago Pendiente de Confirmación
+
+Sistema marca pago como "Pendiente de confirmación"
+Factura queda en estado: "Pago reportado - En verificación"
+Se envía notificación a la empresa (vendedor/admin)
+Cliente ve: "Tu pago está siendo verificado"
+
+RF1134: Notificación de Confirmación
+Cliente es notificado cuando:
+
+Pago aprobado: "Tu pago fue confirmado. ¡Gracias!"
+Pago rechazado: "No hemos podido verificar tu pago. Razón: [...]"
+
+Sugerencia: Verificar datos, contactar al vendedor
+Opción de volver a registrar el pago
+
+
+
+RF1135: Pagos Parciales
+
+Cliente puede hacer pagos parciales (abonos)
+Registra cada abono
+Sistema actualiza saldo pendiente
+Muestra cuánto falta por pagar
+
+
+MÓDULO 50: COMUNICACIÓN CLIENTE-EMPRESA
+50.1 Mensajería Directa
+RF1136: Chat con la Empresa
+
+Cliente puede enviar mensajes a la empresa
+Temas:
+
+Consultas sobre productos
+Estado de pedido
+Problemas con entrega
+Solicitudes especiales
+
+
+Empresa responde desde su portal
+Notificaciones de nuevos mensajes
+
+RF1137: Notificaciones de la Empresa
+
+Empresa puede enviar mensajes broadcast:
+
+Nuevos productos
+Promociones
+Cambios de precios
+Avisos importantes
+
+
+Cliente ve notificaciones en su app
+
+
+50.2 Soporte al Cliente
+RF1138: Crear Ticket de Soporte
+
+Cliente puede crear ticket de soporte:
+
+Problema con pedido
+Producto defectuoso
+Consulta general
+
+
+Seguimiento del ticket
+Comunicación por el ticket
+
+RF1139: Centro de Ayuda
+
+FAQs para clientes
+Cómo hacer un pedido
+Cómo pagar
+Políticas de devolución
+Contacto de emergencia
+
+
+MÓDULO 51: VERSIONES DE APLICACIÓN
+51.1 Aplicación Móvil (iOS/Android)
+RF1140: App Móvil QFlow Pro - Versión Empresa
+Para: Empleados de la empresa cliente (Quesera D&G)
+Características:
+
+Funcionalidad completa: TODOS los 32 módulos del ERP
+Optimizada para móvil:
+
+POS touch-friendly
+Escaneo de códigos de barras con cámara
+Captura de fotos (productos, evidencias)
+Geolocalización (para entregas)
+
+
+Modo offline funcional:
+
+Cache local con Hive
+Sincronización automática
+
+
+Notificaciones push
+Adaptada a pantallas pequeñas
+
+Funcionalidades principales móviles:
+
+POS: Vender desde cualquier lugar (tablet en sucursal)
+Inventario: Contar stock con móvil (escanear códigos)
+Recepción de mercancía: Verificar productos recibidos
+Entregas: Confirmar entregas en ruta
+Gestión de caja: Cuadre desde móvil
+Consultas rápidas: Inventario, clientes, reportes básicos
+
+RF1141: App Móvil - Versión Cliente Final
+Para: Clientes mayoristas/minoristas
+Funcionalidades:
+
+Ver catálogo
+Hacer pedidos
+Ver historial de pedidos
+Seguimiento de entregas
+Ver estado de cuenta y créditos
+Registrar pagos (con foto de comprobante)
+Chat con la empresa
+Notificaciones push
+
+Plataformas:
+
+iOS (App Store)
+Android (Google Play Store)
+
+
+51.2 Aplicación Desktop (Windows/Mac/Linux)
+RF1142: App Desktop QFlow Pro
+Para: Empleados de la empresa (uso en oficina/sucursal)
+Características:
+
+Funcionalidad completa: TODOS los módulos
+Optimizada para pantallas grandes:
+
+Múltiples ventanas/pestañas
+Vistas de tabla extensas
+Reportes detallados
+Gráficos complejos
+
+
+Integración con hardware:
+
+Impresoras térmicas de tickets
+Lectores de código de barras USB
+Balanzas electrónicas
+Cajones de dinero
+
+
+Alto rendimiento
+Atajos de teclado
+
+Ideal para:
+
+POS en sucursal (computadora fija)
+Trabajo contable y administrativo
+Generación de reportes extensos
+Configuración avanzada del sistema
+
+Plataformas:
+
+Windows 10/11
+macOS
+Linux (Ubuntu, Debian)
+
+
+51.3 Portal Web
+RF1143: Portal Web QFlow Pro
+Para: Empleados y administradores
+Características:
+
+Acceso desde cualquier navegador
+No requiere instalación
+Funcionalidad completa (mismo que apps)
+Responsive: Se adapta a tablet y desktop
+Ideal para:
+
+Acceso remoto
+Trabajo desde casa
+Consultas rápidas
+Administración
+
+
+
+RF1144: Portal Web Cliente Final
+Para: Clientes mayoristas/minoristas
+Características:
+
+Mismas funcionalidades que app móvil
+Optimizado para desktop
+Navegadores soportados: Chrome, Firefox, Safari, Edge
+
+
+MÓDULO 52: INTEGRACIÓN ENTRE PLATAFORMAS
+52.1 Flujo de Datos entre Plataformas
+RF1145: Sincronización en Tiempo Real
+FLUJO DE INFORMACIÓN:
+
+Plataforma Admin QFlow Pro
+    ↓ crea/modifica licencia
+Plataforma Empresa (Cliente)
+    ↓ cliente empresarial usa sistema
+    ↓ sus datos están aislados (multi-tenancy)
+    ↓ configura productos, precios
+Plataforma Cliente Final
+    ↓ ve productos configurados por la empresa
+    ↓ hace pedidos
+    ↑ pedidos llegan a Plataforma Empresa
+    ↑ empresa procesa pedidos
+    ↓ actualiza estado de pedido
+    ↓ notifica a cliente final
+RF1146: Aislamiento de Datos
+
+Cada empresa cliente ve SOLO sus datos
+Cliente final ve SOLO datos de la empresa de la que es cliente
+QFlow Pro admin ve datos de todas las empresas (con restricciones de privacidad)
+
+RF1147: APIs de Integración
+
+API REST para cada plataforma
+Autenticación con tokens
+Rate limiting por licencia
+Webhooks para eventos importantes
+
+
+MÓDULO 53: SEGURIDAD Y PRIVACIDAD
+53.1 Autenticación y Autorización
+RF1148: Autenticación Multi-Factor (2FA)
+
+Opcional para todos los usuarios
+Obligatorio para roles sensibles (Admin, Dueño)
+Métodos:
+
+App autenticadora (Google Authenticator, Authy)
+SMS (opcional)
+Email
+
+
+
+RF1149: Sesiones Seguras
+
+Tokens JWT con expiración
+Refresh tokens
+Revocación inmediata de sesiones
+Listar sesiones activas por usuario
+Cerrar sesión remota en dispositivo específico
+
+RF1150: Políticas de Contraseñas
+
+Longitud mínima: 8 caracteres
+Complejidad: Mayúsculas, minúsculas, números
+No reutilizar últimas 5 contraseñas
+Expiración: Opcional (90 días)
+Cambio obligatorio en primer acceso
+
+RF1151: Control de Acceso por IP
+
+Whitelist de IPs (opcional, para Enterprise)
+Bloqueo de IPs sospechosas
+Alertas de acceso desde ubicación nueva
+
+
+53.2 Protección de Datos
+RF1152: Encriptación
+
+Datos en tránsito: TLS 1.3
+Datos en reposo: Encriptación AES-256
+Datos sensibles: Encriptación adicional a nivel de aplicación
+
+Números de tarjeta (tokenizados)
+Datos bancarios
+Información personal sensible
+
+
+
+RF1153: Cumplimiento GDPR y Privacidad
+
+Política de privacidad clara
+Consentimiento explícito para uso de datos
+Derecho al olvido: Cliente puede solicitar eliminación de datos
+Portabilidad de datos: Exportación completa
+Registro de procesamiento de datos personales
+Data Processing Agreements (DPA) con clientes Enterprise
+
+RF1154: Auditoría Completa
+
+Log de TODAS las acciones
+Retención de logs: 1 año (configurable)
+Logs inmutables (append-only)
+Acceso a logs restringido
+Exportación de logs para auditoría externa
+
+RF1155: Backup y Recuperación
+
+Backup automático diario
+Backup incremental continuo
+Retención: 30 días
+Backup encriptado
+Pruebas de restauración periódicas
+RTO: <4 horas
+RPO: <1 hora
+
+
+MÓDULO 54: ONBOARDING Y CAPACITACIÓN
+54.1 Onboarding de Empresa Cliente
+RF1156: Wizard de Configuración Inicial
+Al activar licencia, empresa sigue wizard:
+
+Bienvenida y tour: Video de 3 minutos
+Configurar empresa: Logo, datos, preferencias
+Crear primera sucursal
+Configurar categorías de productos: Usar plantillas o custom
+Importar datos iniciales: Excel/CSV de productos, clientes
+Crear usuarios: Admin, vendedores
+Configurar métodos de pago
+Configurar impuestos y moneda
+Tour interactivo del sistema
+Finalizar: "¡Listo para vender!"
+
+RF1157: Checklist de Primeros Pasos
+Lista de tareas con progreso:
+
+✅ Configurar empresa (10%)
+✅ Crear sucursal (20%)
+⬜ Agregar 10 productos (30%)
+⬜ Registrar 5 clientes (40%)
+⬜ Hacer primera venta (60%)
+⬜ Cerrar primera caja (70%)
+⬜ Generar primer reporte (80%)
+⬜ Invitar empleados (90%)
+⬜ Configurar portal de clientes (100%)
+
+Recompensa: Descuento 10% en próxima renovación
+RF1158: Sesión de Onboarding en Vivo
+Para planes Pro y Enterprise:
+
+Videollamada de 1-2 horas con especialista
+Configuración asistida
+Capacitación básica
+Resolución de dudas
+Agendar desde portal
+
+
+54.2 Capacitación Continua
+RF1159: Academia QFlow Pro
+
+Cursos en video por módulo:
+
+Inventario Básico (30 min)
+POS y Ventas (45 min)
+Contabilidad (1 hora)
+Nómina (1 hora)
+Configuración Avanzada (1 hora)
+
+
+Certificados de completitud
+Evaluaciones al finalizar curso
+
+RF1160: Webinars Mensuales
+
+Webinars en vivo mensuales
+Temas: Nuevas funcionalidades, tips, casos de éxito
+Grabaciones disponibles
+Q&A en vivo
+
+RF1161: Base de Conocimientos
+
+Artículos por módulo
+Guías paso a paso con screenshots
+Videos tutoriales cortos
+FAQs
+Glosario de términos
+
+
+MÓDULO 55: MARKETPLACE Y EXTENSIONES
+55.1 Addons y Módulos Opcionales
+RF1162: Marketplace de Addons
+
+Tienda de módulos adicionales:
+
+Módulo de E-commerce: Tienda online integrada
+Módulo de CRM: Gestión avanzada de clientes
+Módulo de Marketing: Email marketing, campañas
+Módulo de Producción: Para empresas que fabrican
+Módulo de Franquicias: Gestión de franquicias
+Integraciones: Mercado Libre, Rappi, WhatsApp Business API Premium
+
+
+Precio por addon
+Instalación con un clic
+Activación instantánea
+
+RF1163: Integraciones de Terceros
+
+Conexión con servicios externos:
+
+Facturación electrónica DIAN
+Transportadoras (Servientrega, Coordinadora)
+Contabilidad externa (SIIGO, Alegra)
+WhatsApp Business API
+Google Drive / Dropbox
+
+
+Configuración de credenciales
+Sincronización bidireccional
+
+
+MÓDULO 56: REPORTES Y ANALÍTICAS AVANZADAS
+56.1 Business Intelligence
+RF1164: Dashboard Personalizable
+Dueño/Admin pueden crear dashboards custom:
+
+Arrastrar y soltar widgets
+Widgets disponibles:
+
+Ventas del día/mes
+Productos más vendidos
+Inventario crítico
+Cartera vencida
+Gráficos de tendencias
+Mapas de calor
+Indicadores (KPIs)
+
+
+Guardar múltiples dashboards
+Compartir con otros usuarios
+
+RF1165: Reportes Programados
+
+Programar reportes automáticos:
+
+Frecuencia: Diaria, semanal, mensual
+Destinatarios por email
+Formato: PDF, Excel, CSV
+
+
+Ejemplos:
+
+Reporte de ventas semanal
+Estado de inventario mensual
+Cartera vencida quincenal
+
+
+
+RF1166: Análisis Predictivo
+
+Proyecciones de ventas (próximos 3 meses)
+Predicción de demanda por producto
+Identificación de productos en riesgo de vencer
+Alertas de clientes en riesgo de churn (dejar de comprar)
+
+
+MÓDULO 57: WHITELABEL (Enterprise)
+57.1 Personalización Completa
+RF1167: Branding Personalizado
+Para clientes Enterprise:
+
+Reemplazar logo "QFlow Pro" con logo del cliente
+Colores corporativos del cliente
+Dominio personalizado: erp.queseria-dg.com
+Nombre de la app personalizado
+Splash screen con branding del cliente
+
+RF1168: Emails con Branding
+
+Emails enviados desde dominio del cliente
+Template con colores y logo del cliente
+Firma corporativa del cliente
+
+
+5. DIAGRAMA DE ARQUITECTURA COMPLETA
+5.1 Arquitectura de Tres Niveles
+┌────────────────────────────────────────────────────────────────┐
+│              NIVEL 1: PLATAFORMA ADMIN QFLOW PRO               │
+│                    (Nosotros - Proveedor SaaS)                 │
+├────────────────────────────────────────────────────────────────┤
+│ • Gestión de clientes empresariales                            │
+│ • Gestión de licencias (crear, renovar, suspender)             │
+│ • Gestión de planes y precios                                  │
+│ • Facturación y cobros SaaS                                    │
+│ • Soporte técnico (tickets, KB)                                │
+│ • Métricas de negocio (MRR, churn, CAC, LTV)                   │
+│ • Onboarding de nuevos clientes                                │
+│ • Administración global del sistema                            │
+└────────────────────────────────────────────────────────────────┘
+                              ↓
+              [Base de Datos Multi-Tenant - PostgreSQL]
+                              ↓
+┌────────────────────────────────────────────────────────────────┐
+│           NIVEL 2: PLATAFORMA EMPRESARIAL (Clientes)           │
+│              Ej: Quesera D&G, Carnicería XYZ, etc.             │
+├────────────────────────────────────────────────────────────────┤
+│ VERSIONES:                                                      │
+│ ├─ App Móvil (iOS/Android) - Funcionalidad completa           │
+│ ├─ App Desktop (Win/Mac/Linux) - Funcionalidad completa        │
+│ └─ Portal Web - Funcionalidad completa                         │
+│                                                                 │
+│ MÓDULOS (32 originales):                                        │
+│ • Inventario con lotes • Compras • Ventas POS                  │
+│ • Contabilidad • Nómina • Clientes • Créditos                  │
+│ • Préstamos • Logística • Multi-sucursal • etc.                │
+│                                                                 │
+│ MÓDULOS ADICIONALES:                                            │
+│ • Gestión de mi licencia • Configuración empresa               │
+│ • Gestión sucursales • Gestión usuarios y roles                │
+│ • Soporte • Dashboard personalizado                            │
+│                                                                 │
+│ CONTROL DE ACCESO:                                              │
+│ • Dueño: Acceso total, todas las sucursales                    │
+│ • Admin Sucursal: Solo su sucursal                             │
+│ • Vendedor: POS y operaciones básicas                          │
+│ • Contador: Módulos contables/financieros                      │
+└────────────────────────────────────────────────────────────────┘
+                              ↓
+              [Datos aislados por tenant_id en BD]
+                              ↓
+┌────────────────────────────────────────────────────────────────┐
+│        NIVEL 3: APP CLIENTE FINAL (B2B de la empresa)          │
+│      Ej: Tienda en Altos del Rosario que compra a D&G          │
+├────────────────────────────────────────────────────────────────┤
+│ VERSIONES:                                                      │
+│ ├─ App Móvil (iOS/Android) - Funcionalidades de cliente       │
+│ └─ Portal Web - Funcionalidades de cliente                     │
+│                                                                 │
+│ FUNCIONALIDADES:                                                │
+│ • Ver catálogo de productos (precios según tipo de cliente)    │
+│ • Hacer pedidos al por mayor                                   │
+│ • Ver historial de pedidos y seguimiento                       │
+│ • Ver estado de cuenta y créditos                              │
+│ • Registrar pagos (pendiente confirmación por empresa)         │
+│ • Chat con la empresa                                           │
+│ • Notificaciones push de estados                               │
+└────────────────────────────────────────────────────────────────┘
+
+6. FLUJOS CRÍTICOS DEL SISTEMA
+6.1 Flujo: Nuevo Cliente Empresarial
+1. LEAD contacta a QFlow Pro (web, email, teléfono)
+2. Equipo de ventas registra cliente en Admin Platform
+3. Cliente solicita demo/trial
+4. Ventas crea licencia TRIAL (30 días)
+5. Sistema envía email con clave de activación
+6. Cliente descarga app (móvil o desktop)
+7. Cliente ingresa clave, activa licencia
+8. Cliente accede a wizard de onboarding
+9. Cliente configura empresa, sucursal, productos
+10. Cliente puede usar sistema completo por 30 días
+11. Antes de que expire trial:
+    - Sistema envía alertas (15, 7, 3 días antes)
+    - Cliente puede contratar plan desde su portal
+12. Cliente selecciona plan (Basic/Pro/Enterprise)
+13. Cliente ingresa método de pago
+14. Sistema procesa pago
+15. Si exitoso:
+    - Convierte licencia de TRIAL a COMERCIAL
+    - Activa suscripción recurrente
+    - Desbloquea límites del plan contratado
+16. Cliente sigue usando sistema sin interrupción
+
+6.2 Flujo: Cliente Final Hace Pedido
+1. Cliente final (tienda) abre app móvil
+2. Inicia sesión con email/contraseña
+3. Navega catálogo de productos
+   - Ve precios mayoristas (según su tipo aprobado)
+4. Agrega productos al carrito
+5. Revisa carrito y va a checkout
+6. Confirma dirección de entrega
+7. Ve resumen: productos + gastos logísticos estimados
+8. Confirma pedido
+9. Sistema:
+   - Genera número de pedido
+   - Crea registro en BD con estado "Solicitado"
+   - Genera factura proforma
+   - Envía notificación push al cliente
+   - Envía notificación al vendedor de la empresa
+10. Vendedor de Quesera D&G (app empresarial):
+    - Recibe notificación de nuevo pedido
+    - Abre detalle del pedido
+    - Revisa productos y dirección
+    - Cambia estado a "Confirmado"
+11. Cliente recibe notificación: "Pedido confirmado"
+12. Vendedor prepara pedido:
+    - Cambia estado a "En preparación"
+    - Sistema descuenta inventario (reserva)
+13. Pedido listo:
+    - Cambia estado a "Listo para envío"
+    - Asigna ruta y transporte
+14. Sale para entrega:
+    - Estado: "En tránsito"
+    - Cliente recibe notificación con hora estimada
+15. Llega a destino:
+    - Repartidor/boguero confirma entrega
+    - Estado: "Entregado"
+16. Cliente ve notificación: "Tu pedido fue entregado"
+17. Cliente puede confirmar recepción desde app
+18. Factura se marca como entregada
+19. Cliente debe pagar (si es a crédito):
+    - Ve factura en "Estado de Cuenta"
+    - Realiza pago (fuera del sistema)
+    - Registra pago en app (sube comprobante)
+20. Vendedor recibe notificación de pago registrado
+21. Vendedor verifica comprobante
+22. Si correcto:
+    - Vendedor confirma pago
+    - Factura se marca como pagada
+    - Cliente recibe confirmación
+23. Si incorrecto:
+    - Vendedor rechaza y envía mensaje al cliente
+    - Cliente puede volver a registrar pago
+
+6.3 Flujo: Renovación Automática de Licencia
+1. Sistema ejecuta proceso CRON diario
+2. Identifica licencias que expiran hoy
+3. Para cada licencia con auto_renew=true:
+   a. Obtiene método de pago registrado
+   b. Calcula monto: plan + addons + impuestos
+   c. Genera factura con período nuevo
+   d. Intenta cobro con pasarela de pagos
+   e. Si EXITOSO:
+      - Marca factura como pagada
+      - Extiende current_period_end (+1 mes o +1 año)
+      - Mantiene licencia activa
+      - Envía recibo por email
+      - Registra transacción
+   f. Si FALLA:
+      - Marca factura como pendiente
+      - Envía email a cliente: "No pudimos procesar tu pago"
+      - Programa reintento para día +3
+      - Estado de licencia: Sigue activa (período de gracia)
+4. Día +3: Reintento automático
+   - Si exitoso: Todo ok
+   - Si falla: Reintento día +5
+5. Día +5: Segundo reintento
+   - Si exitoso: Todo ok
+   - Si falla: Reintento día +7
+6. Día +7: Tercer reintento
+   - Si exitoso: Todo ok
+   - Si falla:
+     - Marca licencia como "Suspended"
+     - Bloquea acceso a la aplicación
+     - Envía email: "Tu suscripción ha sido suspendida"
+     - Cliente tiene 7 días para pagar antes de eliminación
+7. Cliente puede actualizar método de pago en cualquier momento
+8. Al actualizar y pagar manualmente:
+   - Licencia se reactiva automáticamente
+   - Acceso restaurado
+
+7. CONSIDERACIONES TÉCNICAS
+7.1 Escalabilidad
+RF1169: Arquitectura Escalable
+
+Multi-tenancy permite miles de clientes en misma BD
+Sharding de base de datos cuando sea necesario (por región, por tamaño)
+Caché distribuido (Redis) para datos frecuentes
+CDN para assets estáticos (imágenes, JS, CSS)
+Load balancer para distribuir tráfico
+Auto-scaling de servidores según demanda
+
+RF1170: Límites de Rate Limiting
+
+Por licencia:
+
+Basic: 1,000 requests/hora
+Pro: 5,000 requests/hora
+Enterprise: 20,000 requests/hora
+
+
+Prevenir abuso de API
+Throttling gradual
+
+
+7.2 Monitoreo y Observabilidad
+RF1171: Monitoreo de Aplicación
+
+APM (Application Performance Monitoring)
+Métricas:
+
+Tiempo de respuesta por endpoint
+Tasa de errores
+Uso de CPU/memoria
+Latencia de BD
+
+
+Alertas automáticas si métricas anormales
+Dashboard de salud del sistema
+
+RF1172: Monitoreo de Negocio
+
+Alertas de negocio:
+
+Licencias por expirar hoy
+Pagos fallidos
+Churn anormal
+Soporte con SLA en riesgo
+
+
+Dashboard ejecutivo en tiempo real
+
+RF1173: Logs Centralizados
+
+Todos los logs en sistema centralizado
+Búsqueda y análisis de logs
+Correlación de eventos
+Retención: 90 días
+
+
+8. ROADMAP DE DESARROLLO
+8.1 Fases de Implementación
+FASE 1: MVP SAAS (3-4 meses)
+
+Módulo de licencias básico
+Multi-tenancy con RLS
+Plataforma Admin QFlow Pro
+Onboarding básico
+10 módulos core del ERP para clientes
+App móvil básica (empresarial)
+Facturación manual
+
+FASE 2: CORE BUSINESS (3-4 meses)
+
+32 módulos completos del ERP
+Facturación automática recurrente
+Integración con pasarela de pagos
+Sistema de soporte (tickets)
+App cliente final (B2B)
+Portal web completo
+Métricas SaaS básicas
+
+FASE 3: CRECIMIENTO (2-3 meses)
+
+Onboarding automatizado
+Dashboard de métricas avanzadas
+Marketplace de addons
+Integraciones terceros
+Whitelabel (Enterprise)
+Capacitación (Academia)
+
+FASE 4: ESCALA (2-3 meses)
+
+Análisis predictivo
+Business Intelligence
+Reportes programados
+Multi-idioma
+Multi-moneda
+Optimizaciones de rendimiento
+
+FASE 5: EXPANSIÓN (ongoing)
+
+Nuevos addons
+Nuevas integraciones
+Nuevos mercados (países)
+Nuevas industrias (personalización)

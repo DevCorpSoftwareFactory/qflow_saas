@@ -1,0 +1,373 @@
+# PROPUESTA TÉCNICA: ADAPTACIÓN DE ENTIDADES TRANSACCIONALES PARA TRES PLATAFORMAS
+
+## 1. CONTEXTO DEL PROYECTO
+
+QFlow Pro es un sistema ERP SaaS multi-tenant diseñado para negocios alimentarios en Colombia. El sistema opera en tres plataformas diferenciadas que comparten la misma base de datos PostgreSQL mediante Row Level Security (RLS).
+
+### 1.1 Plataformas del Sistema
+
+| Plataforma | Tecnología | Usuarios | Propósito |
+|------------|------------|----------|-----------|
+| **Admin QFlow Pro** | Next.js 14 + Radix UI | Equipo QFlow Pro | Administración de licencias, clientes SaaS, métricas |
+| **Portal Empresarial** | Next.js 14 + Tailwind | Dueños, admins, vendedores | Gestión completa del negocio |
+| **App Cliente Final** | Flutter + Hive | Clientes B2B | Pedidos, catálogo, seguimiento, estado de cuenta |
+
+### 1.2 Arquitectura de Datos Compartida
+
+Todas las plataformas acceden a las mismas tablas PostgreSQL en Supabase:
+- Multi-tenancy implementado mediante `tenant_id` en cada tabla
+- Offline-first en Flutter mediante sincronización con Hive local
+- RLS filtra automáticamente datos por tenant en consultas
+
+### 1.3 Propósito de Este Documento
+
+Definir las **entidades transaccionales críticas** que deben implementarse en las tres plataformas, describiendo cómo adaptar cada una según las características técnicas específicas de cada entorno.
+
+---
+
+## 2. ENTIDADES TRANSACCIONALES REQUERIDAS
+
+Se deben crear las siguientes entidades que registran las operaciones del negocio:
+
+### 2.1 Grupo 1: Transacciones de Venta
+
+| Entidad | Descripción | Relación Principal |
+|---------|-------------|-------------------|
+| `ventas_encabezado` | Cabecera de cada venta realizada | Pertenece a tenant, sucursal, cliente, cajero |
+| `ventas_detalle` | Ítems vendidos en cada venta | Pertenece a venta + variante_producto + lote |
+
+### 2.2 Grupo 2: Inventario y Almacén
+
+| Entidad | Descripción | Relación Principal |
+|---------|-------------|-------------------|
+| `almacenes` | Ubicaciones físicas de inventario | Pertenece a tenant + sucursal |
+| `existencias` | Stock actual por producto/lote/almacén | Pertenece a almacen + lote + variante |
+| `movimientos_inventario` | Registro de cada operación de inventario | Pertenece a almacen + lote + referencia |
+| `kardex_inventario` | Historial inmutable de movimientos | Sin actualizaciones, solo inserciones |
+
+### 2.3 Grupo 3: Gestión de Caja
+
+| Entidad | Descripción | Relación Principal |
+|---------|-------------|-------------------|
+| `sesiones_caja` | Apertura y cierre de caja por día | Pertenece a tenant + sucursal + usuario |
+| `movimientos_caja` | Entradas y salidas de efectivo | Pertenece a sesion_caja + tipo_movimiento |
+
+---
+
+## 3. ESPECIFICACIONES TÉCNICAS POR ENTIDAD
+
+### 3.1 ENTIDAD: ventas_encabezado
+
+#### Descripción General
+Cabecera de cada transacción de venta. Registra los datos generales de la operación incluyendo totales, cliente, cajero y estado.
+
+#### Campos Principales del DDL (Referencia)
+- `id`: CHAR(36) → UUID
+- `tenant_id`: CHAR(36) → Foreign Key
+- `sucursal_id`: CHAR(36) → Foreign Key
+- `cliente_id`: CHAR(36) → Nullable, Foreign Key
+- `cajero_id`: CHAR(36) → Foreign Key
+- `numero_venta`: VARCHAR(50) → Única por tenant
+- `fecha_venta`: TIMESTAMP WITH TIME ZONE
+- `tipo_venta`: ENUM('contado', 'credito', 'mixto')
+- `estado`: ENUM('completada', 'anulada', 'pendiente', 'devolucion')
+- `subtotal`: DECIMAL(15,2)
+- `porcentaje_descuento`: DECIMAL(5,2)
+- `monto_descuento`: DECIMAL(15,2)
+- `impuesto`: DECIMAL(15,2)
+- `total_venta`: DECIMAL(15,2)
+- `observaciones`: TEXT
+- `created_at`: TIMESTAMP WITH TIME ZONE
+- `updated_at`: TIMESTAMP WITH TIME ZONE
+
+#### Requisitos de Implementación por Plataforma
+
+**Para Backend (TypeORM - Node.js/PostgreSQL):**
+El campo `id` debe generarse automáticamente como UUID usando el decorador correspondiente. Los campos de timestamps deben incluir tanto `@CreateDateColumn` como `@UpdateDateColumn`. Las relaciones con tenant, sucursal, cliente y cajero deben definirse como `@ManyToOne` con las opciones de cascada apropiadas. Es necesario crear un índice único que combine tenant_id y numero_venta para garantizar unicidad por tenant. Los campos de tipo ENUM deben mapearse a tipos enum de TypeScript o a strings con validación de valores permitidos.
+
+**Para Portal Web (Next.js - TypeORM Client o DTOs):**
+Debe exportarse una interfaz TypeScript que contenga todos los campos de la entidad. Si se usa un framework de validación como class-validator, deben incluirse los decoradores correspondientes en los DTOs. Los DTOs para respuestas de API deben incluir las relaciones cargadas cuando sea necesario. Los valores de enum deben validarse antes de enviarse a la API.
+
+**Para App Móvil (Flutter - Modelos Hive):**
+Debe crearse una clase Dart que extienda de `HiveObject` y `Equatable`. Los campos deben anotarse con `@HiveField(index: true)` para aquellos que se usen como criterios de búsqueda frecuentes. Se deben implementar los métodos `toJson()` y `fromJson()` para permitir la sincronización offline. Los campos relacionales deben manejarse como `int` (UUIDs almacenados como strings) o directamente como tipo `String`.
+
+---
+
+### 3.2 ENTIDAD: ventas_detalle
+
+#### Descripción General
+Detalle de productos vendidos en cada transacción. Vincula la venta con el producto, lote consumido y precios históricos. Esta entidad es crítica porque guarda el precio al momento de la venta, el cual es inmutable.
+
+#### Campos Principales del DDL (Referencia)
+- `id`: CHAR(36) → UUID
+- `tenant_id`: CHAR(36) → Foreign Key
+- `venta_encabezado_id`: CHAR(36) → Foreign Key
+- `variante_producto_id`: CHAR(36) → Foreign Key
+- `lote_id`: CHAR(36) → Foreign Key
+- `cantidad`: INTEGER
+- `precio_unitario`: DECIMAL(15,2) → Precio al momento de venta (INMUTABLE)
+- `costo_unitario`: DECIMAL(15,2) → Costo del lote para margen
+- `porcentaje_descuento`: DECIMAL(5,2)
+- `monto_descuento`: DECIMAL(15,2)
+- `subtotal`: DECIMAL(15,2)
+- `created_at`: TIMESTAMP WITH TIME ZONE
+
+#### Requisitos de Implementación por Plataforma
+
+**Para Backend (TypeORM - Node.js/PostgreSQL):**
+El campo `id` debe generarse automáticamente como UUID. Las relaciones deben definirse con `@ManyToOne` hacia `venta_encabezado` (con cascada en delete), hacia `variante_producto` y hacia `lote` para trazabilidad FIFO. **CRÍTICO**: El campo `precio_unitario` es inmutable, lo que significa que una vez registrada la venta, este precio no cambia aunque el producto suba de precio posteriormente.
+
+**Para Portal Web (Next.js - TypeORM Client o DTOs):**
+Los DTOs deben incluir campos calculados como la utilidad, calculada como `subtotal - (cantidad * costo_unitario)`. Debe validarse que la cantidad sea mayor a cero. Se debe mostrar una alerta visual si el precio unitario difiere del precio actual del producto el catálogo.
+
+**Para App Móvil (Flutter - en Modelos Hive):**
+Debe implementarse un método `getTotal()` que calcule `cantidad * precio_unitario`. El almacenamiento en Hive debe usar una clave compuesta que combine `${venta_id}_${producto_id}`. Se debe incluir un método `toJson()` anidado con datos resumidos del producto para permitir vistas offline sin consultas adicionales.
+
+---
+
+### 3.3 ENTIDAD: almacenes
+
+#### Descripción General
+Definición de ubicaciones físicas donde se almacena el inventario. Cada sucursal puede tener múltiples almacenes.
+
+#### Campos Principales del DDL (Referencia)
+- `id`: CHAR(36) → UUID
+- `tenant_id`: CHAR(36) → Foreign Key
+- `sucursal_id`: CHAR(36) → Foreign Key
+- `codigo`: VARCHAR(20) → Único por tenant
+- `nombre`: VARCHAR(100)
+- `direccion`: TEXT
+- `tipo`: ENUM('principal', 'secundario', 'deposito', 'mostrador')
+- `estado`: ENUM('activo', 'inactivo')
+- `created_at`: TIMESTAMP WITH TIME ZONE
+- `updated_at`: TIMESTAMP WITH TIME ZONE
+
+#### Requisitos de Implementación por Plataforma
+
+**Para Backend (TypeORM - Node.js/PostgreSQL):**
+El campo `id` debe generarse como UUID. Debe crearse un índice único en la combinación de tenant_id y codigo. Los campos `tipo` y `estado` deben mapearse a enum de TypeScript o strings con validación.
+
+**Para Portal Web (Next.js - TypeORM Client o DTOs):**
+Debe mostrarse un selector de almacenes con filtro por estado activo. Se debe incluir información del stock total por almacén en los reportes de inventario.
+
+**Para App Móvil (Flutter - Modelos Hive):**
+Todos los almacenes activos deben descargarse al iniciar sesión. El selector debe permitir filtrar por estado. Debe permitirse el cambio de almacén activo durante el día según las operaciones del usuario.
+
+---
+
+### 3.4 ENTIDAD: existencias
+
+#### Descripción General
+Stock actual de cada producto (por variante y lote) en cada almacén. Esta es la tabla de "stock disponible" que se consulta en tiempo real para validar si hay producto suficiente.
+
+#### Campos Principales del DDL (Referencia)
+- `id`: CHAR(36) → UUID
+- `tenant_id`: CHAR(36) → Foreign Key
+- `almacen_id`: CHAR(36) → Foreign Key
+- `variante_producto_id`: CHAR(36) → Foreign Key
+- `lote_id`: CHAR(36) → Foreign Key
+- `cantidad_actual`: INTEGER
+- `cantidad_reservada`: INTEGER → Para pedidos pendientes
+- `cantidad_disponible`: GENERATED COLUMN → `cantidad_actual - cantidad_reservada`
+- `updated_at`: TIMESTAMP WITH TIME ZONE
+
+#### Requisitos de Implementación por Plataforma
+
+**Para Backend (TypeORM - Node.js/PostgreSQL):**
+El campo `id` debe generarse como UUID. Debe crearse un índice compuesto en tenant_id, almacen_id y variante_producto_id. **IMPORTANTE**: NO debe usarse `@UpdateDateColumn` en cantidad_actual porque este campo se actualiza mediante triggers o procedimientos almacenados en PostgreSQL. El campo `cantidad_disponible` es computado, no se guarda directamente en la entidad.
+
+**Para Portal Web (Next.js - TypeORM Client o DTOs):**
+Debe mostrarse un indicador visual de stock bajo (color rojo) cuando la cantidad esté por debajo del umbral mínimo configurado. Se debe incluir un campo calculado `valor_stock` que sea `cantidad_actual * costo_promedio`. Los filtros deben permitir filtrar por almacén y variante en los reportes de inventario.
+
+**Para App Móvil (Flutter - Modelos Hive):**
+Esta es la entidad más crítica para el funcionamiento offline. Debe sincronizarse con Hive al iniciar la sesión del usuario. Debe implementarse un método `reservarStock(cantidad)` que actualice `cantidad_reservada`. El campo `cantidad_disponible` debe usarse para validar si se puede procesar un pedido en modo offline. Debe integrarse con la lógica FIFO para consumir primero los lotes con fecha de vencimiento más cercana.
+
+---
+
+### 3.5 ENTIDAD: movimientos_inventario
+
+#### Descripción General
+Registro de cada operación que afecta el inventario. Incluye entradas, salidas, transferencias, ajustes y devoluciones.
+
+#### Campos Principales del DDL (Referencia)
+- `id`: CHAR(36) → UUID
+- `tenant_id`: CHAR(36) → Foreign Key
+- `almacen_origen_id`: CHAR(36) → Nullable
+- `almacen_destino_id`: CHAR(36) → Nullable
+- `variante_producto_id`: CHAR(36) → Foreign Key
+- `lote_id`: CHAR(36) → Foreign Key
+- `tipo_movimiento`: ENUM('entrada', 'salida', 'transferencia', 'ajuste', 'devolucion_cliente', 'devolucion_proveedor', 'merma')
+- `cantidad`: INTEGER → Positivo para entradas, negativo para salidas
+- `referencia_tipo`: VARCHAR(50) → Tipo de documento origen
+- `referencia_id`: CHAR(36) → UUID del documento origen
+- `usuario_id`: CHAR(36) → Foreign Key
+- `notas`: TEXT
+- `created_at`: TIMESTAMP WITH TIME ZONE
+
+#### Requisitos de Implementación por Plataforma
+
+**Para Backend (TypeORM - Node.js/PostgreSQL):**
+El campo `id` debe generarse como UUID. Solo debe incluirse `@CreateDateColumn`, NO `@UpdateDateColumn` porque esta tabla también es inmutable. Las transferencias deben validar que ambos almacenes (origen y destino) estén definidos. Para el resto de tipos de movimiento, debe validarse que solo tenga definido origen O destino, no ambos. Debe crearse un trigger en PostgreSQL que actualice automáticamente la tabla de existencias después de cada inserción.
+
+**Para Portal Web (Next.js - TypeORM Client o DTOs):**
+Deben incluirse los detalles del usuario que realizó el movimiento. El documento origen debe mostrarse como enlace clickeable. Los filtros deben permitir filtrar por rango de fechas y tipo de movimiento en los reportes de inventario.
+
+**Para App Móvil (Flutter - Modelos Hive):**
+Debe guardarse una cola de movimientos pendientes de sincronización cuando no hay conexión. Debe implementarse un método `revertir()` que cree un movimiento inverso para deshacer operaciones. Los registros deben incluir una marca `sincronizado: boolean`. La sincronización debe procesarse en orden FIFO para mantener la integridad del inventario.
+
+---
+
+### 3.6 ENTIDAD: kardex_inventario
+
+#### Descripción General
+**CRÍTICO - REGISTRO INMUTABLE**: Historial completo e inmutable de todos los movimientos de inventario. Esta tabla NUNCA se actualiza ni elimina. Para corregir errores, se debe crear un movimiento de ajuste en lugar de modificar registros existentes.
+
+#### Campos Principales del DDL (Referencia)
+- `id`: CHAR(36) → UUID
+- `tenant_id`: CHAR(36) → Foreign Key
+- `almacen_id`: CHAR(36) → Foreign Key
+- `variante_producto_id`: CHAR(36) → Foreign Key
+- `lote_id`: CHAR(36) → Foreign Key
+- `tipo_movimiento`: ENUM('entrada', 'salida', 'transferencia', 'ajuste', 'devolucion', 'merma')
+- `cantidad_entrada`: INTEGER → Solo para entradas
+- `cantidad_salida`: INTEGER → Solo para salidas
+- `saldo_anterior`: INTEGER
+- `saldo_posterior`: INTEGER
+- `costo_unitario`: DECIMAL(15,2)
+- `costo_total`: DECIMAL(15,2)
+- `referencia_tipo`: VARCHAR(50)
+- `referencia_id`: CHAR(36)
+- `documento_numero`: VARCHAR(100)
+- `fecha_documento`: DATE
+- `created_at`: TIMESTAMP WITH TIME ZONE → Único timestamp
+
+#### Requisitos de Implementación por Plataforma
+
+**Para Backend (TypeORM - Node.js/PostgreSQL):**
+El campo `id` debe generarse como UUID. **SOLO DEBE TENER `@CreateDateColumn`** - Bajo ninguna circunstancia debe incluirse `@UpdateDateColumn`. Esta tabla es append-only, lo que significa que no deben permitirse operaciones UPDATE ni DELETE. Si es necesario para rendimiento, puede crearse una vista materializada para consultas frecuentes. Debe implementarse una política de retención de datos con mínimo 7 años para cumplimiento legal en Colombia.
+
+**Para Portal Web (Next.js - TypeORM Client o DTOs):**
+Esta es una entidad de solo lectura. Los DTOs no deben incluir métodos de escritura. Debe implementarse paginación del lado del servidor para consultas de kardex que pueden retornar miles de registros. Los filtros deben incluir: fecha, producto, lote y tipo de movimiento. Debe mostrarse "saldo anterior" y "saldo posterior" para trazabilidad completa.
+
+**Para App Móvil (Flutter - Modelos Hive):**
+**NO se debe sincronizar el kardex completo a móvil** porque es una tabla muy grande que puede crecer indefinidamente. Solo debe descargarse el kardex de productos frecuentes (último mes de actividad). Esta información debe usarse para consultas rápidas en modo offline, derivando a la API para consultas de histórico completo. Se debe implementar lógica de caché inteligente que priorice los productos más consultados.
+
+---
+
+### 3.7 ENTIDAD: sesiones_caja
+
+#### Descripción General
+Control de apertura y cierre de caja por día. Cada sesión registra el monto inicial, los movimientos durante el día y el arqueo final.
+
+#### Campos Principales del DDL (Referencia)
+- `id`: CHAR(36) → UUID
+- `tenant_id`: CHAR(36) → Foreign Key
+- `sucursal_id`: CHAR(36) → Foreign Key
+- `usuario_id`: CHAR(36) → Foreign Key
+- `fecha_apertura`: DATE
+- `hora_apertura`: TIME
+- `monto_inicial`: DECIMAL(15,2)
+- `fecha_cierre`: DATE
+- `hora_cierre`: TIME
+- `monto_final_declarado`: DECIMAL(15,2)
+- `monto_final_sistema`: DECIMAL(15,2)
+- `diferencia`: DECIMAL(15,2)
+- `estado`: ENUM('abierta', 'cerrada', 'conciliada')
+- `created_at`: TIMESTAMP WITH TIME ZONE
+- `updated_at`: TIMESTAMP WITH TIME ZONE
+
+#### Requisitos de Implementación por Plataforma
+
+**Para Backend (TypeORM - Node.js/PostgreSQL):**
+El campo `id` debe generarse como UUID. Deben incluirse tanto `@CreateDateColumn` como `@UpdateDateColumn`. La diferencia debe calcularse automáticamente como la resta del monto declarado menos el monto del sistema. El campo `estado` debe mapearse a enum.
+
+**Para Portal Web (Next.js - TypeORM Client o DTOs):**
+Deben mostrarse alertas cuando haya diferencias significativas entre lo declarado y lo del sistema. El reporte de cierre debe incluir todos los movimientos de caja asociados. Los filtros deben permitir buscar por fecha, usuario y estado.
+
+**Para App Móvil (Flutter - Modelos Hive):**
+Debe permitirse iniciar sesión de caja offline. Los movimientos de caja deben guardarse en cola de sincronización. El cálculo de diferencia debe mostrarse en tiempo real durante el cierre.
+
+---
+
+### 3.8 ENTIDAD: movimientos_caja
+
+#### Descripción General
+Registro de cada entrada y salida de efectivo durante una sesión de caja.
+
+#### Campos Principales del DDL (Referencia)
+- `id`: CHAR(36) → UUID
+- `sesion_caja_id`: CHAR(36) → Foreign Key
+- `tipo_movimiento`: ENUM('entrada', 'salida')
+- `categoria`: ENUM('venta_efectivo', 'pago_cliente', 'gasto', 'pago_proveedor', 'retiro_dueño', 'otro')
+- `monto`: DECIMAL(15,2)
+- `descripcion`: TEXT
+- `referencia`: VARCHAR(100)
+- `created_at`: TIMESTAMP WITH TIME ZONE
+
+#### Requisitos de Implementación por Plataforma
+
+**Para Backend (TypeORM - Node.js/PostgreSQL):**
+El campo `id` debe generarse como UUID. Solo debe incluirse `@CreateDateColumn` (inmutable). La relación con sesion_caja debe tener cascada en delete.
+
+**Para Portal Web (Next.js - TypeORM Client o DTOs):**
+Debe permitirse filtrar por tipo de movimiento y categoría. Los reportes deben agrupar movimientos por categoría para análisis.
+
+**Para App Móvil (Flutter - Modelos Hive):**
+Debe permitirse registrar movimientos offline. La sincronización debe actualizar el saldo de la sesión de caja.
+
+---
+
+## 4. CONSIDERACIONES GENERALES PARA LAS TRES PLATAFORMAS
+
+### 4.1 Manejo de UUIDs
+Todas las entidades que usan CHAR(36) como ID primario en el SQL deben generarse automáticamente como UUID en cada plataforma. Esto es fundamental para la arquitectura offline-first porque permite que dispositivos móviles generen IDs únicos sin colisiones cuando están sin conexión.
+
+### 4.2 Relaciones Complejas
+Las entidades detalle (como ventas_detalle) deben tener relaciones `@ManyToOne` correctamente configuradas hacia sus entidades padre (venta_encabezado) y hacia entidades de referencia (variante_producto, lote). Estas relaciones deben manejar correctamente la cascada de operaciones según el caso de uso.
+
+### 4.3 Entidades Inmutables
+Las entidades de Kardex y Movimientos de Inventario son inmutables por naturaleza. NO deben tener `@UpdateDateColumn` ni permitir operaciones UPDATE o DELETE. Para corregir errores, se debe crear un registro de ajuste.
+
+### 4.4 Mapeo de ENUMs
+Los campos ENUM del SQL deben mapearse apropiadamente en cada plataforma:
+- TypeORM: Tipos enum de TypeScript o strings con validación
+- Flutter: Enums de Dart con validación
+- DTOs: Strings con validación de valores permitidos
+
+### 4.5 Sincronización Offline
+Las entidades que se modifican frecuentemente en móvil (existencias, movimientos_inventario, movimientos_caja) deben implementarse con soporte para cola de sincronización en Hive. El sistema debe detectar cuando hay conexión y sincronizar automáticamente los cambios pendientes.
+
+### 4.6 Filtrado por Tenant
+Todas las consultas deben filtrar automáticamente por tenant_id. En el backend esto se maneja mediante RLS de PostgreSQL. En móvil, la sincronización debe filtrar los datos por el tenant del usuario autenticado.
+
+---
+
+## 5. PROPUESTA DE IMPLEMENTACIÓN
+
+Para proceder con la implementación de las entidades transaccionales en las tres plataformas, se propone el siguiente enfoque:
+
+**Paso 1: Definir las interfaces y tipos base en un paquete compartido**
+Crear un paquete shared con las interfaces TypeScript y tipos Dart que definan la estructura de datos. Esto asegura consistencia entre plataformas.
+
+**Paso 2: Implementar entidades TypeORM para el Backend**
+Generar las entidades con todas las relaciones, decoradores e índices necesarios. Incluir triggers y funciones PostgreSQL para mantener la integridad referencial.
+
+**Paso 3: Crear DTOs y validación para el Portal Web**
+Desarrollar los DTOs con class-validator para el Portal Web Next.js. Incluir lógica de transformación para relaciones y campos calculados.
+
+**Paso 4: Implementar modelos Hive para App Móvil**
+Crear los modelos Flutter con soporte Hive, colas de sincronización y lógica de caché inteligente para operaciones offline.
+
+**Paso 5: Implementar servicios de sincronización**
+Desarrollar los servicios que manejan la cola de sincronización, detección de conexión y resolución de conflictos.
+
+**Paso 6: Pruebas de integración**
+Verificar que los datos fluyan correctamente entre las tres plataformas, manteniendo la integridad de las transacciones.
+
+---
+
+## 6. NOTAS ADICIONALES
+
+Este documento describe las especificaciones técnicas para implementar las entidades transaccionales en las tres plataformas del sistema QFlow Pro. La implementación debe seguir estas pautas para garantizar consistencia, rendimiento y soporte offline en todas las plataformas.
+
+Las entidades descritas en este documento son fundamentales para el funcionamiento del sistema ERP y deben implementarse con especial atención a la integridad de datos, soporte offline y rendimiento en consultas.

@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Flutter
+apps/pos/.dart_tool/
+apps/pos/build/
+apps/pos/.packages
+apps/pos/.flutter-plugins
+apps/pos/.flutter-plugins-dependencies
+apps/pos/*.iml
+apps/pos/.metadata
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Docker volumes (local)
+postgres_data/
+pgadmin_data/
+
+# Misc
+*.tsbuildinfo
+.turbo/

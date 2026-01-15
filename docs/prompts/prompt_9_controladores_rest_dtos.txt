@@ -1,0 +1,551 @@
+# PROPUESTA TÉCNICA: CONTROLADORES REST CORE Y DATA TRANSFER OBJECTS
+
+## 1. CONTEXTO DEL PROYECTO
+
+QFlow Pro es un sistema ERP SaaS multi-tenant diseñado para negocios alimentarios en Colombia. Los Data Transfer Objects (DTOs) son la capa fundamental que conecta las peticiones HTTP entrantes con los servicios de negocio. Son la primera línea de defensa contra datos malformados y garantizan que solo información válida llegue a la lógica de aplicación.
+
+---
+
+## 2. OBJETIVO DE LOS DTOs
+
+Crear objetos de transferencia de datos que:
+- Validen el formato y estructura de las peticiones entrantes
+- Garanticen que los datos cumplan con las reglas de negocio básicas
+- Proporcionen mensajes de error claros cuando la validación falle
+- Funcionen de manera consistente en las tres plataformas del sistema
+
+### 2.1 Principios de Validación
+
+Los DTOs deben implementar validaciones idempotentes y de formato:
+
+**Validaciones de Formato:**
+- Verificar tipos de datos correctos (string, number, boolean)
+- Validar formatos específicos (UUID, email, fecha)
+- Verificar longitudes máximas y mínimas
+- Confirmar patrones con expresiones regulares cuando sea necesario
+
+**Validaciones de Negocio:**
+- Verificar valores positivos para cantidades
+- Confirmar que referencias existan (clientes, productos)
+- Validar campos obligatorios vs opcionales
+- Verificar consistencia entre campos relacionados
+
+**Idempotencia:**
+- Las validaciones deben ser consistentes independientemente de cuántas veces se apliquen
+- El resultado debe ser el mismo para los mismos datos de entrada
+- No deben haber efectos secundarios por re-validación
+
+---
+
+## 3. DISEÑO DEL DTO DE CREACIÓN DE PRODUCTO
+
+### 3.1 Propósito
+
+El DTO de creación de producto recibe los datos necesarios para registrar un nuevo producto en el catálogo del sistema. Debe validar que los datos sean correctos antes de pasarlos al servicio de productos.
+
+### 3.2 Campos del DTO
+
+El DTO debe incluir los siguientes campos con sus validaciones correspondientes:
+
+**Nombre del Producto:**
+- Campo de tipo texto
+- Validación de no estar vacío
+- Validación de longitud máxima (para evitar datos excesivamente largos)
+- Opcional: validación de formato de nombre de producto
+
+**Precio:**
+- Campo de tipo número
+- Validación de ser positivo (mayor a cero) si se proporciona
+- Validación de no exceder un máximo razonable
+- Opcional: número de decimales permitidos (para monedas)
+
+**Código:**
+- Campo de tipo texto
+- Validación de no estar vacío
+- Validación de formato alfanumérico
+- Validación de unicidad (se verifica en el servicio, no en el DTO)
+
+**Descripción:**
+- Campo de tipo texto
+- Longitud máxima configurable
+- Opcional: puede ser campo obligatorio o opcional según el tipo de producto
+
+**Categoría:**
+- Campo que referencia una categoría existente
+- Validación de formato UUID
+- La existencia de la categoría se verifica en el servicio
+
+**Impuesto:**
+- Campo de tipo número o referencia
+- Validación de porcentaje válido (0 a 100) si es porcentaje
+- Opcional: puede omitirse si usa el impuesto por defecto
+
+**Imagen:**
+- Campo para la URL de imagen
+- Validación de formato URL válido
+- Opcional: puede ser obligatorio o opcional según configuración
+
+### 3.3 Validaciones Específicas
+
+**Para el campo nombre:**
+- No debe estar vacío ni contener solo espacios en blanco
+- Debe tener una longitud mínima de 2 caracteres
+- Debe tener una longitud máxima de 200 caracteres
+- Opcional: puede validar que no contenga caracteres especiales no permitidos
+
+**Para el campo precio:**
+- Si se proporciona, debe ser un número mayor a cero
+- El número debe tener como máximo 2 decimales
+- El valor no debe exceder un máximo configurable
+- Si no se proporciona, puede usar un precio por defecto
+
+**Para el campo código:**
+- Debe ser obligatorio y no vacío
+- Debe contener solo letras, números y guiones
+- La longitud debe estar entre 3 y 50 caracteres
+- Se convertirá a minúsculas automáticamente para consistencia
+
+---
+
+## 4. DISEÑO DEL DTO DE CREACIÓN DE VENTA
+
+### 4.1 Propósito
+
+El DTO de creación de venta es una estructura compleja que representa toda la información necesaria para registrar una transacción de venta. Se compone de una sección de cabecera y una lista de detalles de productos vendidos.
+
+### 4.2 Estructura del DTO
+
+El DTO tiene una estructura jerárquica de dos niveles:
+
+**Nivel 1: Cabecera de la Venta**
+Contiene la información general de la transacción.
+
+**Nivel 2: Detalles de Venta**
+Contiene un array de ítems, donde cada ítem representa un producto vendido.
+
+### 4.3 Campos de la Cabecera
+
+**Cliente:**
+- Campo opcional que referencia al cliente
+- Validación de formato UUID si se proporciona
+- Si no se proporciona, la venta se registra como venta anónima
+- La existencia del cliente se verifica en el servicio
+
+**Sucursal:**
+- Campo obligatorio que indica dónde se realiza la venta
+- Validación de formato UUID
+- El usuario debe tener acceso a esta sucursal
+
+**Cajero:**
+- Campo que identifica al usuario que realiza la venta
+- Validación de formato UUID
+- Se extrae del usuario autenticado, no del cuerpo de la petición
+
+**Método de Pago:**
+- Campo que indica cómo se paga la venta
+- Validación de valor permitido (efectivo, tarjeta, mixto)
+- Si es mixto, debe incluir detalles de cada método
+
+**Fecha:**
+- Campo de fecha de la venta
+- Validación de formato de fecha válido
+- Por defecto, usa la fecha actual del servidor
+
+**Descuento General:**
+- Campo opcional de descuento porcentual
+- Validación de porcentaje válido (0 a 100)
+- Se aplica al total de la venta
+
+**Notas:**
+- Campo opcional para observaciones
+- Longitud máxima configurable
+
+### 4.4 Estructura del Detalle de Venta
+
+Cada ítem en el array de detalles representa un producto vendido y debe incluir:
+
+**Identificador de Variante:**
+- Campo obligatorio que identifica el producto específico
+- Validación estricta de formato UUID
+- La variante debe existir y estar activa
+
+**Cantidad:**
+- Campo obligatorio de tipo entero
+- Validación de ser mayor a cero
+- Validación de no exceder un máximo por ítem
+
+**Precio Unitario:**
+- Campo obligatorio del precio al momento de venta
+- Validación de ser positivo (mayor a cero)
+- Este precio es inmutable, no cambia aunque el producto suba después
+
+**Descuento por Ítem:**
+- Campo opcional de descuento porcentual
+- Validación de porcentaje válido
+- Se aplica solo a este ítem específico
+
+**Notas del Ítem:**
+- Campo opcional para observaciones específicas del ítem
+- Longitud máxima configurable
+
+### 4.5 Validaciones de Consistencia
+
+El DTO debe incluir validaciones que crucen información entre campos:
+
+**Validación de Lista No Vacía:**
+- El array de detalles debe contener al menos un ítem
+- No debe permitir ventas vacías
+
+**Validación de Total:**
+- El suma de subtotales debe ser coherente con los precios
+- Los descuentos no deben exceder el subtotal del ítem
+
+**Validación de Referencia a Variante:**
+- No deben existir UUIDs duplicados en el array
+- Cada variante debe ser única dentro de la misma venta
+
+---
+
+## 5. DISEÑO DEL DTO DE APERTURA DE CAJA
+
+### 5.1 Propósito
+
+El DTO de apertura de caja recibe los datos necesarios para iniciar una sesión de caja. Es un DTO simple pero crítico para la seguridad del manejo de efectivo.
+
+### 5.2 Campos del DTO
+
+**Monto Inicial:**
+- Campo obligatorio de tipo número
+- Validación de ser mayor o igual a cero
+- Permite valor cero si el cajero no recibe fondo inicial
+- El número debe tener como máximo 2 decimales
+
+**Sucursal:**
+- Campo que indica en qué sucursal se abre la caja
+- Validación de formato UUID
+- El usuario debe tener permiso para operar en esta sucursal
+
+**Cajero:**
+- Campo que identifica al cajero que abre la caja
+- Validación de formato UUID
+- Se extrae del usuario autenticado para mayor seguridad
+
+**Método de Pago Inicial:**
+- Campo que indica el medio del monto inicial
+- Validación de valor permitido
+- Generalmente efectivo, pero puede incluir otros
+
+**Notas:**
+- Campo opcional para observaciones
+- Uso típico para registrar observaciones del fondo inicial
+
+### 5.3 Validaciones Específicas
+
+**Para el monto inicial:**
+- Debe ser numérico
+- Debe ser mayor o igual a cero (no negativo)
+- Si es cero, debe permitir apertura igualmente
+- El número de decimales no debe exceder dos
+
+**Para la sucursal y cajero:**
+- Deben ser UUIDs válidos
+- El cajero debe estar activo y tener permisos
+- El cajero no debe tener otra caja abierta en la misma sucursal
+
+---
+
+## 6. MENSAJES DE ERROR DESCRIPTIVOS
+
+### 6.1 Principios de Mensajes de Error
+
+Los mensajes de error deben ser:
+- Claros y en lenguaje natural
+- Específicos sobre qué campo falló
+- Indicativos de cómo corregir el problema
+- Traducidos al idioma del usuario
+
+### 6.2 Ejemplos de Mensajes
+
+**Para campos vacíos:**
+- "El nombre del producto es obligatorio"
+- "Debe incluir al menos un producto en la venta"
+- "La cantidad de items no puede estar vacía"
+
+**Para formatos inválidos:**
+- "El formato del identificador de variante no es válido"
+- "El código de producto contiene caracteres no permitidos"
+- "La fecha no tiene un formato válido"
+
+**Para valores inválidos:**
+- "El precio debe ser un número mayor a cero"
+- "La cantidad debe ser mayor a cero"
+- "El monto inicial no puede ser negativo"
+
+**Para validaciones de negocio:**
+- "No puede registrar una venta sin productos"
+- "El cliente especificado no existe"
+- "Ya tiene una caja abierta, ciérrela primero"
+
+---
+
+## 7. IMPLEMENTACIÓN POR PLATAFORMA
+
+### 7.1 Backend (NestJS + class-validator)
+
+**Ubicación de los DTOs:**
+
+```
+src/
+  modules/
+    products/
+      dto/
+        create-product.dto.ts
+    sales/
+      dto/
+        create-sale.dto.ts
+        sale-detail.dto.ts
+    cash/
+      dto/
+        open-cash.dto.ts
+  common/
+    decorators/
+      transform/
+    filters/
+      validation-exception.filter.ts
+```
+
+**Decoradores de Validación:**
+
+Los DTOs deben usar decoradores de class-validator:
+- `@IsNotEmpty()` para campos obligatorios
+- `@IsPositive()` para valores mayores a cero
+- `@IsUUID()` para identificadores
+- `@ValidateNested()` para objetos anidados
+- `@Type(() => DetalleVentaDto)` para arrays de objetos
+
+**Transformación de Datos:**
+
+Los DTOs deben incluir transformaciones:
+- Conversión de strings a números cuando sea necesario
+- Recorte de espacios en blanco en campos de texto
+- Conversión a minúsculas para códigos y emails
+- Transformación de fechas de string a Date
+
+**Excepciones de Validación:**
+
+El backend debe capturar errores de validación:
+- Devolver respuesta 400 Bad Request
+- Incluir detalles de qué campos fallaron
+- Proporcionar mensajes de error claros
+
+### 7.2 Portal Web (Next.js + class-validator o Zod)
+
+**Validación en Frontend:**
+
+El portal web debe validar antes de enviar al servidor:
+- Validación en tiempo real mientras el usuario escribe
+- Validación al enviar el formulario
+- Mensajes de error visuales junto a los campos
+
+**Librería Recomendada:**
+
+Se puede usar class-validator con los mismos DTOs del backend, o usar Zod para una validación más idiomática en TypeScript:
+
+```
+import { z } from 'zod'
+
+const createProductSchema = z.object({
+  nombre: z.string().min(2).max(200),
+  precio: z.number().positive().optional(),
+  codigo: z.string().min(3).max(50),
+})
+
+type CreateProductDto = z.infer<typeof createProductSchema>
+```
+
+**Experiencia de Usuario:**
+
+- Mostrar errores inmediatamente cuando se detecten
+- Deshabilitar botón de envío si hay errores
+- Mantener datos ingresados si hay error de servidor
+- Resaltar campos con errores visualmente
+
+### 7.3 App Móvil (Flutter + Validación)
+
+**Validación en Flutter:**
+
+La app móvil debe implementar validaciones equivalentes:
+- Validación antes de enviar datos al servidor
+- Validación offline cuando no hay conexión
+
+**Librería Recomendada:**
+
+Se puede usar dartz con functional programming, o implementaciones manuales de validación:
+
+```
+class CreateProductDto {
+  final String nombre;
+  final double? precio;
+  final String codigo;
+
+  CreateProductDto({
+    required this.nombre,
+    this.precio,
+    required this.codigo,
+  });
+
+  ValidationResult validate() {
+    if (nombre.isEmpty) {
+      return ValidationResult.error('El nombre es obligatorio');
+    }
+    if (precio != null && precio <= 0) {
+      return ValidationResult.error('El precio debe ser mayor a cero');
+    }
+    return ValidationResult.ok();
+  }
+}
+```
+
+**Validación Offline:**
+
+Cuando la app está offline:
+- Validar localmente antes de encolar
+- Guardar errores para mostrar al recuperar conexión
+- No enviar datos inválidos al servidor
+
+---
+
+## 8. CASOS DE USO COMUNES
+
+### 8.1 Creación de Producto
+
+**Escenario Válido:**
+- Usuario ingresa nombre, precio, código
+- Todos los campos obligatorios presentes
+- Formatos correctos
+- Resultado: Producto creado exitosamente
+
+**Escenario Inválido:**
+- Usuario intenta crear producto sin nombre
+- DTO rechaza por campo nombre vacío
+- Retorna error claro
+- Usuario corrige y reintenta
+
+### 8.2 Registro de Venta
+
+**Escenario Válido:**
+- Cajero selecciona productos y cantidades
+- Sistema valida stock disponible
+- Envía venta con cabecera y detalles
+- Resultado: Venta registrada
+
+**Escenario Inválido:**
+- Cajero intenta vender producto sin stock
+- Validación de stock falla
+- DTO no llega al servidor
+- Cajero recibe error inmediatamente
+
+### 8.3 Apertura de Caja
+
+**Escenario Válido:**
+- Cajero ingresa monto inicial
+- Sistema valida que es >= 0
+- Cajero no tiene otra caja abierta
+- Resultado: Caja abierta exitosamente
+
+**Escenario Inválido:**
+- Cajero intenta abrir caja con monto negativo
+- DTO rechaza por validación
+- Error claro mostrado
+- Cajero corrige el monto
+
+---
+
+## 9. CONSIDERACIONES DE SEGURIDAD
+
+### 9.1 Validación en el Servidor
+
+**Principio Fundamental:**
+- La validación en frontend es por experiencia de usuario
+- La validación en servidor es por seguridad
+- **Siempre validar en el servidor, nunca confiar en el cliente**
+
+### 9.2 Campos Protegidos
+
+Algunos campos no deben aceptarse desde el DTO:
+- IDs generados por el sistema
+- Fechas de creación
+- Campos calculados internamente
+- Referencias a usuarios que no son el autenticado
+
+### 9.3 Validación de Permisos
+
+Además de los DTOs, los controladores deben:
+- Verificar que el usuario tiene permisos para la operación
+- Validar que el usuario puede acceder a los recursos referenciados
+- Confirmar que el tenant del usuario coincide con los recursos
+
+---
+
+## 10. EXTENSIBILIDAD DE LOS DTOs
+
+### 10.1 DTOs Base
+
+Crear DTOs base que se extiendan para casos específicos:
+
+```
+BaseProductDto (campos comunes)
+  └── CreateProductDto (creación)
+  └── UpdateProductDto (actualización)
+  └── PartialUpdateProductDto (actualización parcial)
+
+BaseSaleDto (campos comunes de venta)
+  └── CreateSaleDto (creación)
+  └── SaleFilterDto (filtros de búsqueda)
+```
+
+### 10.2 Versionamiento de APIs
+
+Cuando los DTOs cambien:
+- Mantener versiones anteriores temporalmente
+- Incluir versión en el path de la API
+- Documentar cambios entre versiones
+- Proveer migradores cuando sea necesario
+
+---
+
+## 11. PRUEBAS REQUERIDAS
+
+### 11.1 Pruebas Unitarias
+
+- Validar cada regla de validación individualmente
+- Verificar mensajes de error correctos
+- Probar casos límite (valores mínimos, máximos)
+- Verificar transformaciones de datos
+
+### 11.2 Pruebas de Integración
+
+- Probar flujo completo de validación
+- Verificar que errores del servidor llegan al cliente
+- Probar validación con datos reales del sistema
+- Verificar tiempos de respuesta de validación
+
+### 11.3 Pruebas de Seguridad
+
+- Probar inyección de datos maliciosos
+- Verificar que campos protegidos no se pueden modificar
+- Probar绕过 de validaciones
+- Verificar sanitización de inputs
+
+---
+
+## 12. CONCLUSIONES
+
+Los DTOs son la primera línea de defensa del sistema contra datos malformados. Su implementación correcta garantiza que:
+
+- Los servicios de negocio reciban solo datos válidos
+- Los errores de formato se detecten tempranamente
+- Los mensajes de error sean claros para los usuarios
+- La seguridad del sistema se mantenga en todas las capas
+
+La implementación consistente de DTOs en las tres plataformas (backend, portal web, app móvil) asegura una experiencia de usuario uniforme y una base sólida para la lógica de negocio.
