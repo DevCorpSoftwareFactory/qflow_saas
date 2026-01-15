@@ -78,19 +78,16 @@ describe('Performance Tests', () => {
             );
 
             const elapsed = Date.now() - start;
-            // Count successful HTTP responses (not just fulfilled promises)
-            const successCount = results.filter(
-                (r) => r.status === 'fulfilled' && (r.value as any).status < 500,
-            ).length;
-            const successRate = successCount / burstSize;
-
-            // Results logged silently for debugging if needed
+            console.log(`Burst completed in ${elapsed}ms`);
 
             // Lower threshold: we just want to verify the server doesn't crash under load
             // 401 responses are expected since the user doesn't exist
             // All requests should complete without 5xx errors
             const serverErrors = results.filter(
-                (r) => r.status === 'fulfilled' && (r.value as any).status >= 500,
+                (r) =>
+                    r.status === 'fulfilled' &&
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                    (r.value as any).status >= 500,
             ).length;
             expect(serverErrors).toBe(0);
         });
@@ -160,9 +157,6 @@ describe('Performance Tests', () => {
                 );
             }
 
-            const elapsed = Date.now() - startTime;
-            const avgResponseTime =
-                results.reduce((a, b) => a + b.time, 0) / results.length;
             const errorCount = results.filter((r) => r.status >= 500).length;
             const errorRate = errorCount / results.length;
 

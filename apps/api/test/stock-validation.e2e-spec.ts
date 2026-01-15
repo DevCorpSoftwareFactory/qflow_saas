@@ -3,11 +3,11 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../src/app.module';
 import { randomUUID } from 'crypto';
-import { Server } from 'http';
 import request from 'supertest';
 import { StockQueryResult } from './utils';
 
 function getTestServer(app: INestApplication) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return request(app.getHttpServer());
 }
 

@@ -60,59 +60,55 @@ describe('SalesService Concurrency Tests', () => {
     });
 
     async function seedDatabase() {
-        try {
-            // 1. Tenant
-            await dataSource.query(
-                `INSERT INTO tenants (id, company_name, slug, tax_id, email, status, plan, language, timezone, currency, onboarding_completed, max_branches, max_users, max_storage_gb, max_transactions_monthly)
+        // 1. Tenant
+        await dataSource.query(
+            `INSERT INTO tenants (id, company_name, slug, tax_id, email, status, plan, language, timezone, currency, onboarding_completed, max_branches, max_users, max_storage_gb, max_transactions_monthly)
                  VALUES ($1, 'Test Tenant ${uniqueSuffix}', 'test-tenant-${uniqueSuffix}', 'TAX-${uniqueSuffix}', 'admin-${uniqueSuffix}@test.com', 'active', 'enterprise', 'es', 'America/Bogota', 'COP', true, 5, 10, 10, 1000)`,
-                [testTenantId],
-            );
+            [testTenantId],
+        );
 
-            // 2. Branch
-            await dataSource.query(
-                `INSERT INTO branches (id, tenant_id, name, code, address, phone, is_active, created_at, updated_at)
+        // 2. Branch
+        await dataSource.query(
+            `INSERT INTO branches (id, tenant_id, name, code, address, phone, is_active, created_at, updated_at)
                  VALUES ($1, $2, 'Main Branch', 'B001', '123 Main St', '555-5555', true, NOW(), NOW())`,
-                [testBranchId, testTenantId],
-            );
+            [testBranchId, testTenantId],
+        );
 
-            // 3. Role
-            await dataSource.query(
-                `INSERT INTO roles (id, tenant_id, name, description, is_system_role, permissions)
+        // 3. Role
+        await dataSource.query(
+            `INSERT INTO roles (id, tenant_id, name, description, is_system_role, permissions)
                  VALUES ($1, $2, 'Cashier', 'Cashier Role', false, '[]')`,
-                [testRoleId, testTenantId],
-            );
+            [testRoleId, testTenantId],
+        );
 
-            // 4. User (Cashier)
-            await dataSource.query(
-                `INSERT INTO users (id, tenant_id, email, password_hash, full_name, role_id, branch_ids, is_active)
+        // 4. User (Cashier)
+        await dataSource.query(
+            `INSERT INTO users (id, tenant_id, email, password_hash, full_name, role_id, branch_ids, is_active)
                  VALUES ($1, $2, 'cashier-${uniqueSuffix}@test.com', 'hash', 'Test Cashier', $3, $4, true)`,
-                [testCashierId, testTenantId, testRoleId, JSON.stringify([testBranchId])],
-            );
+            [testCashierId, testTenantId, testRoleId, JSON.stringify([testBranchId])],
+        );
 
-            // 5. Unit of Measure
-            const testUnitId = randomUUID();
-            await dataSource.query(
-                `INSERT INTO units_of_measure (id, tenant_id, name, abbreviation, is_active, unit_type)
+        // 5. Unit of Measure
+        const testUnitId = randomUUID();
+        await dataSource.query(
+            `INSERT INTO units_of_measure (id, tenant_id, name, abbreviation, is_active, unit_type)
                  VALUES ($1, $2, 'Unit', 'u', true, 'quantity')`,
-                [testUnitId, testTenantId],
-            );
+            [testUnitId, testTenantId],
+        );
 
-            // 6. Product
-            await dataSource.query(
-                `INSERT INTO products (id, tenant_id, name, code, unit_id, description, track_inventory, is_salable, is_purchasable, is_returnable, is_active, min_stock, has_expiry, has_batch_control)
+        // 6. Product
+        await dataSource.query(
+            `INSERT INTO products (id, tenant_id, name, code, unit_id, description, track_inventory, is_salable, is_purchasable, is_returnable, is_active, min_stock, has_expiry, has_batch_control)
                  VALUES ($1, $2, 'Test Product', 'P-${uniqueSuffix}', $3, 'Description', true, true, true, true, true, 0, false, true)`,
-                [testProductId, testTenantId, testUnitId],
-            );
+            [testProductId, testTenantId, testUnitId],
+        );
 
-            // 7. Product Variant
-            await dataSource.query(
-                `INSERT INTO product_variants (id, tenant_id, product_id, sku, is_active)
+        // 7. Product Variant
+        await dataSource.query(
+            `INSERT INTO product_variants (id, tenant_id, product_id, sku, is_active)
                  VALUES ($1, $2, $3, 'SKU-${uniqueSuffix}', true)`,
-                [testVariantId, testTenantId, testProductId],
-            );
-        } catch (error) {
-            throw error;
-        }
+            [testVariantId, testTenantId, testProductId],
+        );
     }
 
     afterAll(async () => {
@@ -262,8 +258,6 @@ describe('SalesService Concurrency Tests', () => {
                 createSaleRequest(testVariantId, 1),
                 createSaleRequest(testVariantId, 1),
             ]);
-
-            const elapsed = Date.now() - startTime;
         });
     });
 
