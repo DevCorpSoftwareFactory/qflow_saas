@@ -1,0 +1,20 @@
+groups:
+  - name: internal_alerts
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ $labels.instance }} down"
+          description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute."
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Error Rate on {{ $labels.instance }}"
+          description: "High error rate detected (5xx errors > 1/sec)."
