@@ -1,3 +1,9 @@
+# =============================================================================
+# QFlow Pro - Local Development Docker Compose
+# =============================================================================
+# Simple setup for development - uses .env for basic configuration
+# =============================================================================
+
 services:
   postgres:
     image: postgres:15-alpine

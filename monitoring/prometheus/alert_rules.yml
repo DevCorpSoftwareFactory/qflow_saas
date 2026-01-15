@@ -1,6 +1,7 @@
 groups:
   - name: internal_alerts
     rules:
+      # Service availability alert
       - alert: InstanceDown
         expr: up == 0
         for: 1m
@@ -10,6 +11,7 @@ groups:
           summary: "Instance {{ $labels.instance }} down"
           description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute."
 
+      # High HTTP error rate
       - alert: HighErrorRate
         expr: rate(http_requests_total{status=~"5.."}[5m]) > 1
         for: 2m
@@ -18,3 +20,43 @@ groups:
         annotations:
           summary: "High Error Rate on {{ $labels.instance }}"
           description: "High error rate detected (5xx errors > 1/sec)."
+
+      # Database connection issues
+      - alert: DatabaseConnectionDown
+        expr: up{job="postgres"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL database is unreachable"
+          description: "The PostgreSQL database has been unreachable for more than 30 seconds. Immediate action required."
+
+      # API target down (covers DB connectivity indirectly)
+      - alert: APITargetDown
+        expr: up{job="api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "QFlow API is down"
+          description: "The QFlow API service has been down for more than 1 minute."
+
+      # High authentication failure rate
+      - alert: AuthenticationErrorsHigh
+        expr: rate(auth_requests_total{status="failure"}[5m]) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High authentication failure rate"
+          description: "More than 0.5 auth failures per second in the last 5 minutes. Possible brute force attack or misconfiguration."
+
+      # High response latency
+      - alert: HighResponseLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API response latency"
+          description: "95th percentile of API response time is above 2 seconds."

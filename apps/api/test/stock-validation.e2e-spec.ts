@@ -7,338 +7,338 @@ import request from 'supertest';
 import { StockQueryResult } from './utils';
 
 function getTestServer(app: INestApplication) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    return request(app.getHttpServer());
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  return request(app.getHttpServer());
 }
 
 /**
  * Stock Validation Tests
  */
 describe('StockService Tests', () => {
-    let app: INestApplication;
-    let dataSource: DataSource;
+  let app: INestApplication;
+  let dataSource: DataSource;
 
-    // Use dynamic IDs to ensure isolation and Referencial Integrity
-    const testTenantId = randomUUID();
-    const testBranchId = randomUUID();
-    const testBranchBId = randomUUID(); // Second branch for isolation tests
-    const testVariantId = randomUUID();
-    const testCashierId = randomUUID();
-    const testProductId = randomUUID();
-    const testUnitId = randomUUID();
-    const testRoleId = randomUUID();
+  // Use dynamic IDs to ensure isolation and Referencial Integrity
+  const testTenantId = randomUUID();
+  const testBranchId = randomUUID();
+  const testBranchBId = randomUUID(); // Second branch for isolation tests
+  const testVariantId = randomUUID();
+  const testCashierId = randomUUID();
+  const testProductId = randomUUID();
+  const testUnitId = randomUUID();
+  const testRoleId = randomUUID();
 
-    const uniqueSuffix = Date.now();
+  const uniqueSuffix = Date.now();
 
-    beforeAll(async () => {
-        const moduleFixture: TestingModule = await Test.createTestingModule({
-            imports: [AppModule],
-        }).compile();
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
 
-        app = moduleFixture.createNestApplication();
-        app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
-        await app.init();
+    app = moduleFixture.createNestApplication();
+    app.useGlobalPipes(
+      new ValidationPipe({ transform: true, whitelist: true }),
+    );
+    await app.init();
 
-        dataSource = moduleFixture.get<DataSource>(DataSource);
+    dataSource = moduleFixture.get<DataSource>(DataSource);
 
-        await seedDatabase();
-    });
+    await seedDatabase();
+  });
 
-    afterAll(async () => {
-        await app.close();
-    });
+  afterAll(async () => {
+    await app.close();
+  });
 
-    async function seedDatabase() {
-        try {
-            // 1. Tenant
-            await dataSource.query(
-                `INSERT INTO tenants (id, company_name, slug, tax_id, email, status, plan, language, timezone, currency, onboarding_completed, max_branches, max_users, max_storage_gb, max_transactions_monthly)
+  async function seedDatabase() {
+    try {
+      // 1. Tenant
+      await dataSource.query(
+        `INSERT INTO tenants (id, company_name, slug, tax_id, email, status, plan, language, timezone, currency, onboarding_completed, max_branches, max_users, max_storage_gb, max_transactions_monthly)
                  VALUES ($1, 'Stock Test Tenant ${uniqueSuffix}', 'stock-test-${uniqueSuffix}', 'ST-TAX-${uniqueSuffix}', 'stock-admin-${uniqueSuffix}@test.com', 'active', 'enterprise', 'es', 'America/Bogota', 'COP', true, 5, 10, 10, 1000)`,
-                [testTenantId],
-            );
+        [testTenantId],
+      );
 
-            // 2. Main Branch
-            await dataSource.query(
-                `INSERT INTO branches (id, tenant_id, name, code, address, phone, is_active, created_at, updated_at)
+      // 2. Main Branch
+      await dataSource.query(
+        `INSERT INTO branches (id, tenant_id, name, code, address, phone, is_active, created_at, updated_at)
                  VALUES ($1, $2, 'Main Branch', 'B001', '123 Main St', '555-5555', true, NOW(), NOW())`,
-                [testBranchId, testTenantId],
-            );
+        [testBranchId, testTenantId],
+      );
 
-            // 3. Second Branch (for isolation tests)
-            await dataSource.query(
-                `INSERT INTO branches (id, tenant_id, name, code, address, phone, is_active, created_at, updated_at)
+      // 3. Second Branch (for isolation tests)
+      await dataSource.query(
+        `INSERT INTO branches (id, tenant_id, name, code, address, phone, is_active, created_at, updated_at)
                  VALUES ($1, $2, 'Second Branch', 'B002', '456 Second St', '555-5556', true, NOW(), NOW())`,
-                [testBranchBId, testTenantId],
-            );
+        [testBranchBId, testTenantId],
+      );
 
-            // 4. Role
-            await dataSource.query(
-                `INSERT INTO roles (id, tenant_id, name, description, is_system_role, permissions)
+      // 4. Role
+      await dataSource.query(
+        `INSERT INTO roles (id, tenant_id, name, description, is_system_role, permissions)
                  VALUES ($1, $2, 'Cashier', 'Cashier Role', false, '[]')`,
-                [testRoleId, testTenantId],
-            );
+        [testRoleId, testTenantId],
+      );
 
-            // 5. User (Cashier)
-            await dataSource.query(
-                `INSERT INTO users (id, tenant_id, email, password_hash, full_name, role_id, branch_ids, is_active)
+      // 5. User (Cashier)
+      await dataSource.query(
+        `INSERT INTO users (id, tenant_id, email, password_hash, full_name, role_id, branch_ids, is_active)
                  VALUES ($1, $2, 'stock-cashier-${uniqueSuffix}@test.com', 'hash', 'Stock Cashier', $3, $4, true)`,
-                [testCashierId, testTenantId, testRoleId, JSON.stringify([testBranchId])],
-            );
+        [
+          testCashierId,
+          testTenantId,
+          testRoleId,
+          JSON.stringify([testBranchId]),
+        ],
+      );
 
-            // 6. Unit of Measure
-            await dataSource.query(
-                `INSERT INTO units_of_measure (id, tenant_id, name, abbreviation, is_active, unit_type)
+      // 6. Unit of Measure
+      await dataSource.query(
+        `INSERT INTO units_of_measure (id, tenant_id, name, abbreviation, is_active, unit_type)
                  VALUES ($1, $2, 'Unit', 'u', true, 'quantity')`,
-                [testUnitId, testTenantId],
-            );
+        [testUnitId, testTenantId],
+      );
 
-            // 7. Product
-            await dataSource.query(
-                `INSERT INTO products (id, tenant_id, name, code, unit_id, description, track_inventory, is_salable, is_purchasable, is_returnable, is_active, min_stock, has_expiry, has_batch_control)
+      // 7. Product
+      await dataSource.query(
+        `INSERT INTO products (id, tenant_id, name, code, unit_id, description, track_inventory, is_salable, is_purchasable, is_returnable, is_active, min_stock, has_expiry, has_batch_control)
                  VALUES ($1, $2, 'Stock Test Product', 'P-${uniqueSuffix}', $3, 'Description', true, true, true, true, true, 0, false, true)`,
-                [testProductId, testTenantId, testUnitId],
-            );
+        [testProductId, testTenantId, testUnitId],
+      );
 
-            // 8. Product Variant
-            await dataSource.query(
-                `INSERT INTO product_variants (id, tenant_id, product_id, sku, is_active)
+      // 8. Product Variant
+      await dataSource.query(
+        `INSERT INTO product_variants (id, tenant_id, product_id, sku, is_active)
                  VALUES ($1, $2, $3, 'SKU-${uniqueSuffix}', true)`,
-                [testVariantId, testTenantId, testProductId],
-            );
-
-        } catch (error) {
-            console.error('[TEST SETUP ERROR]', error);
-            throw error;
-        }
+        [testVariantId, testTenantId, testProductId],
+      );
+    } catch (error) {
+      console.error('[TEST SETUP ERROR]', error);
+      throw error;
     }
+  }
 
-    async function setTestStock(
-        variantId: string,
-        branchId: string,
-        tenantId: string,
-        quantity: number,
-    ): Promise<void> {
-        // ALWAYS CLEANUP first to ensure exact quantity
-        await dataSource.query(
-            `DELETE FROM inventory_lots WHERE variant_id = $1 AND branch_id = $2`,
-            [variantId, branchId]
-        );
+  async function setTestStock(
+    variantId: string,
+    branchId: string,
+    tenantId: string,
+    quantity: number,
+  ): Promise<void> {
+    // ALWAYS CLEANUP first to ensure exact quantity
+    await dataSource.query(
+      `DELETE FROM inventory_lots WHERE variant_id = $1 AND branch_id = $2`,
+      [variantId, branchId],
+    );
 
-        // Only insert if > 0 because of chk_lots_initial_positive constraint
-        if (quantity > 0) {
-            // Unique lot number every time for this function call to avoid constraint issues if we didn't delete (but we do)
-            const lotNumber = `STO-LOT-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    // Only insert if > 0 because of chk_lots_initial_positive constraint
+    if (quantity > 0) {
+      // Unique lot number every time for this function call to avoid constraint issues if we didn't delete (but we do)
+      const lotNumber = `STO-LOT-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
-            await dataSource.query(
-                `
+      await dataSource.query(
+        `
                 INSERT INTO inventory_lots (id, tenant_id, branch_id, variant_id, lot_number, current_quantity, initial_quantity, purchase_price, status)
                 VALUES (gen_random_uuid(), $1, $2, $3, $5, $4, $4, 100.00, 'active')
                 `,
-                [tenantId, branchId, variantId, quantity, lotNumber],
-            );
-        }
+        [tenantId, branchId, variantId, quantity, lotNumber],
+      );
     }
+  }
 
-    async function getStockQuantity(
-        variantId: string,
-        branchId: string,
-    ): Promise<number> {
-        const result: StockQueryResult[] = await dataSource.query(
-            `SELECT COALESCE(SUM(current_quantity), 0) as total 
+  async function getStockQuantity(
+    variantId: string,
+    branchId: string,
+  ): Promise<number> {
+    const result: StockQueryResult[] = await dataSource.query(
+      `SELECT COALESCE(SUM(current_quantity), 0) as total 
              FROM inventory_lots 
              WHERE variant_id = $1 AND branch_id = $2 AND status = 'active'`,
-            [variantId, branchId],
-        );
-        return Number(result[0]?.total ?? 0);
-    }
+      [variantId, branchId],
+    );
+    return Number(result[0]?.total ?? 0);
+  }
 
-    /*
-     * TESTS
-     */
+  /*
+   * TESTS
+   */
 
-    describe('Zero Stock Prevention', () => {
-        it('should reject sale when stock is exactly zero', async () => {
-            await setTestStock(testVariantId, testBranchId, testTenantId, 0);
+  describe('Zero Stock Prevention', () => {
+    it('should reject sale when stock is exactly zero', async () => {
+      await setTestStock(testVariantId, testBranchId, testTenantId, 0);
 
-            const response = await getTestServer(app)
-                .post('/inventory/check-availability')
-                .send({
-                    variantId: testVariantId,
-                    branchId: testBranchId,
-                    quantity: 1,
-                });
-
-            expect(response.status).toBe(400);
+      const response = await getTestServer(app)
+        .post('/inventory/check-availability')
+        .send({
+          variantId: testVariantId,
+          branchId: testBranchId,
+          quantity: 1,
         });
 
-        it('should reject quantity greater than available', async () => {
-            await setTestStock(testVariantId, testBranchId, testTenantId, 5);
-
-            const response = await getTestServer(app)
-                .post('/inventory/check-availability')
-                .send({
-                    variantId: testVariantId,
-                    branchId: testBranchId,
-                    quantity: 10,
-                });
-
-            expect(response.status).toBe(400);
-        });
-
-        it('should accept quantity equal to available', async () => {
-            await setTestStock(testVariantId, testBranchId, testTenantId, 5);
-
-            const response = await getTestServer(app)
-                .post('/inventory/check-availability')
-                .send({
-                    variantId: testVariantId,
-                    branchId: testBranchId,
-                    quantity: 5,
-                });
-
-            expect(response.status).toBe(200);
-        });
+      expect(response.status).toBe(400);
     });
 
-    describe('Negative Stock Prevention', () => {
-        it('should never allow stock to become negative via sales', async () => {
-            await setTestStock(testVariantId, testBranchId, testTenantId, 2);
+    it('should reject quantity greater than available', async () => {
+      await setTestStock(testVariantId, testBranchId, testTenantId, 5);
 
-            const response = await getTestServer(app)
-                .post('/sales')
-                .set('x-tenant-id', testTenantId)
-                .send({
-                    branchId: testBranchId,
-                    cashierId: testCashierId,
-                    paymentMethod: 'cash',
-                    items: [{ variantId: testVariantId, quantity: 5, unitPrice: 100 }],
-                });
-
-            expect([400, 409]).toContain(response.status);
-
-            const finalStock = await getStockQuantity(
-                testVariantId,
-                testBranchId,
-            );
-            expect(finalStock).toBeGreaterThanOrEqual(0);
+      const response = await getTestServer(app)
+        .post('/inventory/check-availability')
+        .send({
+          variantId: testVariantId,
+          branchId: testBranchId,
+          quantity: 10,
         });
+
+      expect(response.status).toBe(400);
     });
 
-    describe('Multi-Branch Stock Isolation', () => {
-        it('should not allow sale in branch with no stock when other branch has stock', async () => {
-            // Branch A has stock
-            await setTestStock(testVariantId, testBranchId, testTenantId, 10);
-            // Branch B has 0 (or no lot)
-            await setTestStock(testVariantId, testBranchBId, testTenantId, 0);
+    it('should accept quantity equal to available', async () => {
+      await setTestStock(testVariantId, testBranchId, testTenantId, 5);
 
-            const response = await getTestServer(app)
-                .post('/inventory/check-availability')
-                .send({
-                    variantId: testVariantId,
-                    branchId: testBranchBId,
-                    quantity: 1,
-                });
-
-            expect(response.status).toBe(400);
+      const response = await getTestServer(app)
+        .post('/inventory/check-availability')
+        .send({
+          variantId: testVariantId,
+          branchId: testBranchId,
+          quantity: 5,
         });
 
-        it('should correctly track stock per branch independently', async () => {
-            await setTestStock(testVariantId, testBranchId, testTenantId, 5);
-            await setTestStock(testVariantId, testBranchBId, testTenantId, 15);
+      expect(response.status).toBe(200);
+    });
+  });
 
-            const responseA = await getTestServer(app)
-                .post('/inventory/check-availability')
-                .send({
-                    variantId: testVariantId,
-                    branchId: testBranchId,
-                    quantity: 5,
-                });
+  describe('Negative Stock Prevention', () => {
+    it('should never allow stock to become negative via sales', async () => {
+      await setTestStock(testVariantId, testBranchId, testTenantId, 2);
 
-            const responseB = await getTestServer(app)
-                .post('/inventory/check-availability')
-                .send({
-                    variantId: testVariantId,
-                    branchId: testBranchBId,
-                    quantity: 15,
-                });
-
-            expect(responseA.status).toBe(200);
-            expect(responseB.status).toBe(200);
+      const response = await getTestServer(app)
+        .post('/sales')
+        .set('x-tenant-id', testTenantId)
+        .send({
+          branchId: testBranchId,
+          cashierId: testCashierId,
+          paymentMethod: 'cash',
+          items: [{ variantId: testVariantId, quantity: 5, unitPrice: 100 }],
         });
+
+      expect([400, 409]).toContain(response.status);
+
+      const finalStock = await getStockQuantity(testVariantId, testBranchId);
+      expect(finalStock).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe('Multi-Branch Stock Isolation', () => {
+    it('should not allow sale in branch with no stock when other branch has stock', async () => {
+      // Branch A has stock
+      await setTestStock(testVariantId, testBranchId, testTenantId, 10);
+      // Branch B has 0 (or no lot)
+      await setTestStock(testVariantId, testBranchBId, testTenantId, 0);
+
+      const response = await getTestServer(app)
+        .post('/inventory/check-availability')
+        .send({
+          variantId: testVariantId,
+          branchId: testBranchBId,
+          quantity: 1,
+        });
+
+      expect(response.status).toBe(400);
     });
 
-    describe('Stock Accuracy After Sales', () => {
-        it('should correctly decrement stock after successful sale', async () => {
-            const initialStock = 10;
-            await setTestStock(
-                testVariantId,
-                testBranchId,
-                testTenantId,
-                initialStock,
-            );
+    it('should correctly track stock per branch independently', async () => {
+      await setTestStock(testVariantId, testBranchId, testTenantId, 5);
+      await setTestStock(testVariantId, testBranchBId, testTenantId, 15);
 
-            const saleQuantity = 3;
-            const response = await getTestServer(app)
-                .post('/sales')
-                .set('x-tenant-id', testTenantId)
-                .send({
-                    branchId: testBranchId,
-                    cashierId: testCashierId,
-                    paymentMethod: 'cash',
-                    items: [
-                        {
-                            variantId: testVariantId,
-                            quantity: saleQuantity,
-                            unitPrice: 100,
-                        },
-                    ],
-                });
-
-            expect(response.status).toBe(201);
-
-            const finalStock = await getStockQuantity(
-                testVariantId,
-                testBranchId,
-            );
-            expect(finalStock).toBe(initialStock - saleQuantity);
+      const responseA = await getTestServer(app)
+        .post('/inventory/check-availability')
+        .send({
+          variantId: testVariantId,
+          branchId: testBranchId,
+          quantity: 5,
         });
+
+      const responseB = await getTestServer(app)
+        .post('/inventory/check-availability')
+        .send({
+          variantId: testVariantId,
+          branchId: testBranchBId,
+          quantity: 15,
+        });
+
+      expect(responseA.status).toBe(200);
+      expect(responseB.status).toBe(200);
+    });
+  });
+
+  describe('Stock Accuracy After Sales', () => {
+    it('should correctly decrement stock after successful sale', async () => {
+      const initialStock = 10;
+      await setTestStock(
+        testVariantId,
+        testBranchId,
+        testTenantId,
+        initialStock,
+      );
+
+      const saleQuantity = 3;
+      const response = await getTestServer(app)
+        .post('/sales')
+        .set('x-tenant-id', testTenantId)
+        .send({
+          branchId: testBranchId,
+          cashierId: testCashierId,
+          paymentMethod: 'cash',
+          items: [
+            {
+              variantId: testVariantId,
+              quantity: saleQuantity,
+              unitPrice: 100,
+            },
+          ],
+        });
+
+      expect(response.status).toBe(201);
+
+      const finalStock = await getStockQuantity(testVariantId, testBranchId);
+      expect(finalStock).toBe(initialStock - saleQuantity);
+    });
+  });
+
+  describe('Input Validation', () => {
+    it('should reject negative quantity', async () => {
+      const response = await getTestServer(app)
+        .post('/inventory/check-availability')
+        .send({
+          variantId: testVariantId,
+          branchId: testBranchId,
+          quantity: -5,
+        });
+
+      expect(response.status).toBe(400);
     });
 
-    describe('Input Validation', () => {
-        it('should reject negative quantity', async () => {
-            const response = await getTestServer(app)
-                .post('/inventory/check-availability')
-                .send({
-                    variantId: testVariantId,
-                    branchId: testBranchId,
-                    quantity: -5,
-                });
-
-            expect(response.status).toBe(400);
+    it('should reject zero quantity', async () => {
+      const response = await getTestServer(app)
+        .post('/inventory/check-availability')
+        .send({
+          variantId: testVariantId,
+          branchId: testBranchId,
+          quantity: 0,
         });
 
-        it('should reject zero quantity', async () => {
-            const response = await getTestServer(app)
-                .post('/inventory/check-availability')
-                .send({
-                    variantId: testVariantId,
-                    branchId: testBranchId,
-                    quantity: 0,
-                });
-
-            expect(response.status).toBe(400);
-        });
-
-        it('should reject invalid UUID format', async () => {
-            const response = await getTestServer(app)
-                .post('/inventory/check-availability')
-                .send({
-                    variantId: 'not-a-uuid',
-                    branchId: testBranchId,
-                    quantity: 1,
-                });
-
-            expect(response.status).toBe(400);
-        });
+      expect(response.status).toBe(400);
     });
+
+    it('should reject invalid UUID format', async () => {
+      const response = await getTestServer(app)
+        .post('/inventory/check-availability')
+        .send({
+          variantId: 'not-a-uuid',
+          branchId: testBranchId,
+          quantity: 1,
+        });
+
+      expect(response.status).toBe(400);
+    });
+  });
 });

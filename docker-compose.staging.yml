@@ -1,12 +1,12 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
+    env_file:
+      - .env.production
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-qflow_pro_staging}
+      POSTGRES_DB: ${DB_NAME:-qflow_pro}
     volumes:
       - staging_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -15,62 +15,89 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - qflow-staging-net
+      - qflow-net
 
   redis:
     image: redis:7-alpine
     volumes:
       - staging_redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
-      - qflow-staging-net
+      - qflow-net
 
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: production
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_USERNAME: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-postgres}
-      DB_NAME: ${DB_NAME:-qflow_pro_staging}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_SECRET: ${JWT_SECRET:-staging-secret}
     ports:
       - "8080:3000"
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     networks:
-      - qflow-staging-net
+      - qflow-net
     restart: always
 
   admin:
     build:
       context: .
       dockerfile: apps/admin/Dockerfile
+    env_file:
+      - .env.production
     environment:
       NEXT_PUBLIC_API_URL: http://api:3000
     ports:
       - "8081:3001"
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3001" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - api
     networks:
-      - qflow-staging-net
+      - qflow-net
     restart: always
 
   portal:
     build:
       context: .
       dockerfile: apps/portal/Dockerfile
+    env_file:
+      - .env.production
     environment:
       NEXT_PUBLIC_API_URL: http://api:3000
     ports:
       - "8082:3002"
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3002" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - api
     networks:
-      - qflow-staging-net
+      - qflow-net
     restart: always
 
 volumes:
@@ -79,5 +106,6 @@ volumes:
 
 
 networks:
-  qflow-staging-net:
+  qflow-net:
+    name: qflow-net
     driver: bridge

@@ -3,32 +3,75 @@ FROM node:18-alpine AS base
 # Setup pnpm
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN npm install -g pnpm@9.15.4
 
+# =============================================================================
+# Stage 1: Install dependencies
+# =============================================================================
+FROM base AS deps
+WORKDIR /app
+
+# Copy package files for dependency installation
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json ./apps/api/
+COPY packages/database/package.json ./packages/database/
+COPY packages/shared/package.json ./packages/shared/
+
+RUN pnpm install --frozen-lockfile
+
+# =============================================================================
+# Stage 2: Build
+# =============================================================================
 FROM base AS builder
 WORKDIR /app
-# Copy full monorepo source (simplest approach for now)
+
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN pnpm install --frozen-lockfile
-# Build API and dependencies (database, shared)
+
+# Build API and its dependencies
 RUN pnpm turbo run build --filter=api...
 
-FROM base AS runner
+# =============================================================================
+# Stage 3: Production dependencies only
+# =============================================================================
+FROM base AS prod-deps
 WORKDIR /app
 
-# create non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nestjs
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json ./apps/api/
+COPY packages/database/package.json ./packages/database/
+COPY packages/shared/package.json ./packages/shared/
 
-# Copy built artifacts and node_modules from builder
-# Note: For production, we should prune devDependencies but typically NestJS needs dependencies at runtime.
-# Optimization: Copy from builder only what's needed.
-COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
+# Install production dependencies only
+RUN pnpm install --frozen-lockfile --prod
+
+# =============================================================================
+# Stage 4: Runner
+# =============================================================================
+FROM node:18-alpine AS runner
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nestjs
+
+# Copy production dependencies
+COPY --from=prod-deps --chown=nestjs:nodejs /app/node_modules ./node_modules
+
+# Copy built artifacts
 COPY --from=builder --chown=nestjs:nodejs /app/apps/api/dist ./apps/api/dist
-COPY --from=builder --chown=nestjs:nodejs /app/packages ./packages
+COPY --from=builder --chown=nestjs:nodejs /app/packages/database/dist ./packages/database/dist
+COPY --from=builder --chown=nestjs:nodejs /app/packages/shared/dist ./packages/shared/dist
+
+# Copy package.json for runtime
 COPY --from=builder --chown=nestjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nestjs:nodejs /app/apps/api/package.json ./apps/api/package.json
 
 USER nestjs
 EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD wget --spider -q http://localhost:3000/health || exit 1
 
 CMD ["node", "apps/api/dist/main"]

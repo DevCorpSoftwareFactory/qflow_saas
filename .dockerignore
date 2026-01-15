@@ -42,3 +42,19 @@ coverage/
 
 # Misc
 *.tsbuildinfo
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Tests (not needed in production images)
+**/*.spec.ts
+**/*.test.ts
+**/__tests__
+
+# Documentation (except essential)
+*.md
+!README.md
+CHANGELOG*
+

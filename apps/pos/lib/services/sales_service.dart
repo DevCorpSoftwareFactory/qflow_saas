@@ -15,8 +15,8 @@ class SalesService {
   SalesService({
     required AppDatabase database,
     required StockService stockService,
-  })  : _db = database,
-        _stockService = stockService;
+  }) : _db = database,
+       _stockService = stockService;
 
   /// Create a sale with offline atomic transaction.
   /// All steps execute within a single Drift transaction.
@@ -59,14 +59,17 @@ class SalesService {
       await _addToSyncQueue(saleId, tenantId);
 
       // Return the created sale
-      return (_db.select(_db.localSales)..where((s) => s.id.equals(saleId)))
-          .getSingle();
+      return (_db.select(
+        _db.localSales,
+      )..where((s) => s.id.equals(saleId))).getSingle();
     });
   }
 
   /// Validate stock for all items before processing.
   Future<void> _validateAllItems(
-      List<SaleItemDto> items, String branchId) async {
+    List<SaleItemDto> items,
+    String branchId,
+  ) async {
     for (final item in items) {
       await _stockService.checkAvailability(
         variantId: item.variantId,
@@ -110,7 +113,9 @@ class SalesService {
 
     // Calculate item subtotal
     final itemSubtotal =
-        item.unitPrice * item.quantity * (1 - (item.discountPercent ?? 0) / 100);
+        item.unitPrice *
+        item.quantity *
+        (1 - (item.discountPercent ?? 0) / 100);
 
     // Create SaleItem
     final saleItem = LocalSaleItemsCompanion.insert(
@@ -155,8 +160,8 @@ class SalesService {
       id: movementId,
       tenantId: tenantId,
       cashSessionId: Value(dto.cashSessionId),
-      movementType: CashMovementType.cash_in,
-      category: Value(CashMovementCategory.sales_cash),
+      movementType: CashMovementType.income,
+      category: Value(CashMovementCategory.salesCash),
       amount: amount,
       concept: 'Venta $saleId',
       synced: const Value(false),

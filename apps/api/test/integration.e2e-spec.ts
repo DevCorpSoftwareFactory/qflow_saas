@@ -92,7 +92,13 @@ describe('Integration E2E Tests', () => {
     await dataSource.query(
       `INSERT INTO users (id, tenant_id, email, password_hash, full_name, role_id, branch_ids, is_active)
              VALUES ($1, $2, $3, 'hash_placeholder', 'Integ Cashier', $4, $5, true)`,
-      [testCashierId, testTenantId, salesEmail, testCashierRoleId, JSON.stringify([testBranchId])],
+      [
+        testCashierId,
+        testTenantId,
+        salesEmail,
+        testCashierRoleId,
+        JSON.stringify([testBranchId]),
+      ],
     );
 
     // 6. Unit & Product & Variant (with Stock)
@@ -180,7 +186,10 @@ describe('Integration E2E Tests', () => {
         .set('Authorization', `Bearer ${accessToken}`);
 
       if (response.status !== 200) {
-        console.error('[STEP 4 FAILED] Response:', JSON.stringify(response.body, null, 2));
+        console.error(
+          '[STEP 4 FAILED] Response:',
+          JSON.stringify(response.body, null, 2),
+        );
       }
 
       expect(response.status).toBe(200);

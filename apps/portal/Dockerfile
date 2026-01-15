@@ -3,31 +3,63 @@ FROM node:18-alpine AS base
 # Setup pnpm
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN npm install -g pnpm@9.15.4
 
+# =============================================================================
+# Stage 1: Install dependencies
+# =============================================================================
+FROM base AS deps
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/portal/package.json ./apps/portal/
+COPY packages/shared/package.json ./packages/shared/
+
+RUN pnpm install --frozen-lockfile
+
+# =============================================================================
+# Stage 2: Build
+# =============================================================================
 FROM base AS builder
 WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN pnpm install --frozen-lockfile
-# Build Portal
+
+# Build Portal app
 RUN pnpm turbo run build --filter=portal...
 
-FROM base AS runner
+# =============================================================================
+# Stage 3: Runner
+# =============================================================================
+FROM node:18-alpine AS runner
 WORKDIR /app
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/apps/portal/package.json ./apps/portal/package.json
-COPY --from=builder /app/apps/portal/.next ./apps/portal/.next
-COPY --from=builder /app/apps/portal/public ./apps/portal/public
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/packages ./packages
+# Copy Next.js build
+COPY --from=builder --chown=nextjs:nodejs /app/apps/portal/package.json ./apps/portal/package.json
+COPY --from=builder --chown=nextjs:nodejs /app/apps/portal/.next ./apps/portal/.next
+COPY --from=builder --chown=nextjs:nodejs /app/apps/portal/public ./apps/portal/public
+COPY --from=builder --chown=nextjs:nodejs /app/apps/portal/node_modules ./apps/portal/node_modules
+
+# Copy shared packages
+COPY --from=builder --chown=nextjs:nodejs /app/packages ./packages
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 
 USER nextjs
+
 EXPOSE 3002
-ENV PORT 3002
-ENV HOSTNAME "0.0.0.0"
+ENV PORT=3002
+ENV HOSTNAME="0.0.0.0"
+ENV NODE_ENV=production
 
 WORKDIR /app/apps/portal
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD wget --spider -q http://localhost:3002 || exit 1
+
 CMD ["npm", "start"]

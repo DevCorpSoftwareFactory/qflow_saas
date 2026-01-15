@@ -7,6 +7,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { InventoryModule } from './inventory/inventory.module';
 import { SalesModule } from './sales/sales.module';
+import { MetricsModule } from './metrics/metrics.module';
+import { CatalogModule } from './catalog/catalog.module';
 
 @Module({
   imports: [
@@ -14,12 +16,13 @@ import { SalesModule } from './sales/sales.module';
     TypeOrmModule.forRootAsync({
       useFactory: () => AppDataSource.options,
     }),
+    MetricsModule,
     AuthModule,
     InventoryModule,
     SalesModule,
+    CatalogModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule { }
-
