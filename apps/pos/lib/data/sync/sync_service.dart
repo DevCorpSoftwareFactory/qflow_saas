@@ -66,7 +66,7 @@ class SyncService {
   }
   
   Future<void> _syncSale(SyncQueueData item) async {
-    final payload = jsonDecode(item.payload);
+    // final payload = jsonDecode(item.payload);
     
     // TODO: POST to /api/sales
     // On success, update the local sale with synced = true
@@ -76,7 +76,7 @@ class SyncService {
   }
   
   Future<void> _syncPayment(SyncQueueData item) async {
-    final payload = jsonDecode(item.payload);
+    // final payload = jsonDecode(item.payload);
     
     // TODO: POST to /api/payments
     
