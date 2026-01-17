@@ -31,6 +31,20 @@ const baseConfig: DataSourceOptions = {
 
     // Schema sync - NEVER in production
     synchronize: false,
+
+    // UUID extension for native UUID generation
+    uuidExtension: 'uuid-ossp',
+
+    // Connection options
+    connectTimeoutMS: parseInt(process.env.DB_CONNECT_TIMEOUT || '10000', 10),
+
+    // Extra connection parameters
+    extra: {
+        // Statement timeout (30 seconds default)
+        statement_timeout: parseInt(process.env.DB_STATEMENT_TIMEOUT || '30000', 10),
+        // Idle connection timeout
+        idle_in_transaction_session_timeout: parseInt(process.env.DB_IDLE_TIMEOUT || '60000', 10),
+    },
 };
 
 export const AppDataSource = new DataSource(baseConfig);

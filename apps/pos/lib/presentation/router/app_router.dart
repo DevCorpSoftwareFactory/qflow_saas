@@ -4,6 +4,9 @@ import '../../core/utils/go_router_refresh_stream.dart';
 import '../screens/login_screen.dart';
 import '../screens/pos_screen.dart';
 import '../screens/catalog/product_detail_screen.dart';
+import '../screens/cash_session/close_session_screen.dart';
+import '../screens/cash_session/cash_session_report_screen.dart';
+import '../screens/auth/forgot_password_screen.dart';
 
 class AppRouter {
   final AuthBloc authBloc;
@@ -43,6 +46,21 @@ class AppRouter {
             },
           ),
         ],
+      ),
+      GoRoute(
+        path: '/cash-session/close',
+        builder: (context, state) => const CloseSessionScreen(),
+      ),
+      GoRoute(
+        path: '/cash-session/report/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return CashSessionReportScreen(sessionId: id);
+        },
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordScreen(),
       ),
     ],
   );

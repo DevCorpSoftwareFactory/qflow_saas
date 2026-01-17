@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty, IsUUID, Min } from 'class-validator';
+import { IsInt, IsNotEmpty, IsNumber, IsUUID, Min } from 'class-validator';
 
 export class CheckAvailabilityDto {
   @IsUUID()
@@ -9,7 +9,7 @@ export class CheckAvailabilityDto {
   @IsNotEmpty()
   branchId: string;
 
-  @IsInt()
-  @Min(1)
+  @IsNumber()
+  @Min(0.0001)
   quantity: number;
 }

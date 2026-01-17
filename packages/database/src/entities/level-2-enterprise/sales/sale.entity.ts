@@ -22,6 +22,7 @@ import { SalePayment } from './sale-payment.entity';
 import { Branch } from '../organization/branch.entity';
 import { User } from '../organization/user.entity';
 
+// Export as string literals for type safety while matching varchar in DB
 export enum SaleStatus {
     DRAFT = 'draft',
     COMPLETED = 'completed',
@@ -37,6 +38,7 @@ export enum SaleType {
 
 /**
  * Encabezado de venta POS
+ * Aligned with init.sql schema (uses varchar, not enum types)
  * @table sales
  */
 @Entity('sales')
@@ -72,24 +74,24 @@ export class Sale extends TenantBaseEntity {
     @Column({ name: 'sale_date', type: 'timestamptz', default: () => 'NOW()' })
     saleDate: Date;
 
-    /** Tipo de venta: retail=contado mostrador, wholesale=mayorista, order=pedido */
+    /** Tipo de venta: retail=contado mostrador, wholesale=mayorista, order=pedido (varchar in init.sql) */
     @Column({
         name: 'sale_type',
-        type: 'enum',
-        enum: SaleType,
-        default: SaleType.RETAIL
+        type: 'varchar',
+        length: 20,
+        default: 'retail'
     })
-    @IsIn(Object.values(SaleType))
-    saleType: SaleType;
+    @IsIn(['retail', 'wholesale', 'order'])
+    saleType: string;
 
-    /** Status: draft, completed, cancelled, returned */
+    /** Status: draft, completed, cancelled, returned (varchar in init.sql) */
     @Column({
-        type: 'enum',
-        enum: SaleStatus,
-        default: SaleStatus.COMPLETED
+        type: 'varchar',
+        length: 20,
+        default: 'completed'
     })
-    @IsIn(Object.values(SaleStatus))
-    status: SaleStatus;
+    @IsIn(['draft', 'completed', 'cancelled', 'returned'])
+    status: string;
 
     // Totales
     @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })

@@ -12,5 +12,7 @@ export 'price_lists.dart';
 export 'inventory.dart';
 export 'customers.dart';
 export 'sales.dart';
+export 'orders.dart';
 export 'cash.dart';
 export 'sync_queue.dart';
+export 'sync_audit.dart';

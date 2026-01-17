@@ -1,0 +1,28 @@
+{
+    "name": "@qflow/shared",
+    "version": "0.0.1",
+    "description": "Shared types, enums, and utilities for QFlow Pro",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsc -p tsconfig.build.json",
+        "clean": "rm -rf dist",
+        "prepublishOnly": "pnpm run build"
+    },
+    "keywords": [
+        "qflow",
+        "shared",
+        "types",
+        "enums"
+    ],
+    "author": "QFlow Pro Team",
+    "license": "UNLICENSED",
+    "devDependencies": {
+        "@types/node": "^25.0.9",
+        "reflect-metadata": "^0.2.2",
+        "typescript": "^5.3.0"
+    }
+}

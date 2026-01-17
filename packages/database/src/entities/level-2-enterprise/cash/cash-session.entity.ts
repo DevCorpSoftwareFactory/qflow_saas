@@ -22,6 +22,7 @@ export enum SessionStatus {
 /**
  * Sesiones de caja - CIERRE CIEGO
  * CRITICAL: system_amount vs declared_amount separation.
+ * Aligned with init.sql schema.
  * @table cash_sessions
  */
 @Entity('cash_sessions')
@@ -65,41 +66,30 @@ export class CashSession {
     @Min(0)
     initialAmount: number;
 
-    // 💰 SEPARACIÓN CIEGA (PROPÓSITO DEL MÓDULO)
-    /** Lo que dice el sistema */
+    // 💰 CIERRE CIEGO - Matches init.sql schema
+    // Lo que dice el sistema (suma de ventas en efectivo + fondo inicial)
     @Column({ name: 'system_amount', type: 'decimal', precision: 15, scale: 2, default: 0 })
     @IsNumber()
     systemAmount: number;
 
-    /** Lo que cuenta el cajero */
+    // Lo que el cajero cuenta físicamente al cerrar
     @Column({ name: 'declared_amount', type: 'decimal', precision: 15, scale: 2, nullable: true })
     @IsOptional()
     @IsNumber()
     declaredAmount?: number;
 
-    /** Difference (generated: declared - system) */
-    @Column({
-        type: 'decimal',
-        precision: 15,
-        scale: 2,
-        generatedType: 'STORED',
-        asExpression: 'COALESCE(declared_amount, 0) - system_amount'
-    })
-    difference: number;
+    // difference is a GENERATED column in init.sql: declared - system
+    // We don't include it as a column since it's computed by database
 
     @Column({ name: 'difference_justification', type: 'text', nullable: true })
     @IsOptional()
     @IsString()
     differenceJustification?: string;
 
-    /** Status: open, closed */
-    @Column({
-        type: 'enum',
-        enum: SessionStatus,
-        default: SessionStatus.OPEN
-    })
-    @IsIn(Object.values(SessionStatus))
-    status: SessionStatus;
+    /** Status: open, closed, pending_approval (varchar in init.sql) */
+    @Column({ name: 'status', type: 'varchar', length: 20, default: 'open' })
+    @IsIn(['open', 'closed', 'pending_approval'])
+    status: string;
 
     // Aprobación
     @Column({ name: 'approved_by', type: 'uuid', nullable: true })

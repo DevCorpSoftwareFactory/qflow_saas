@@ -26,11 +26,11 @@ class _LoginScreenState extends State<LoginScreen> {
   void _onLoginPressed() {
     if (_formKey.currentState?.validate() ?? false) {
       context.read<AuthBloc>().add(
-        AuthLoginRequested(
-          _emailController.text.trim(),
-          _passwordController.text,
-        ),
-      );
+            AuthLoginRequested(
+              _emailController.text.trim(),
+              _passwordController.text,
+            ),
+          );
     }
   }
 
@@ -67,7 +67,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         Text(
                           'QFlow POS',
-                          style: Theme.of(context).textTheme.headlineMedium
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: Theme.of(context).colorScheme.primary,
@@ -127,13 +129,19 @@ class _LoginScreenState extends State<LoginScreen> {
                             return null;
                           },
                         ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () => context.push('/forgot-password'),
+                            child: const Text('Forgot Password?'),
+                          ),
+                        ),
                         const SizedBox(height: 24),
                         BlocBuilder<AuthBloc, AuthState>(
                           builder: (context, state) {
                             return FilledButton(
-                              onPressed: state is AuthLoading
-                                  ? null
-                                  : _onLoginPressed,
+                              onPressed:
+                                  state is AuthLoading ? null : _onLoginPressed,
                               style: FilledButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 16,

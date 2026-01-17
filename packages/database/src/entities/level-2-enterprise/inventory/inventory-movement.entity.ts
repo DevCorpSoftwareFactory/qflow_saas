@@ -70,15 +70,16 @@ export class InventoryMovement {
     variant: ProductVariant;
 
     /** 
-     * Tipo de movimiento
+     * Tipo de movimiento (varchar in init.sql)
      */
     @Column({
         name: 'movement_type',
-        type: 'enum',
-        enum: MovementType
+        type: 'varchar',
+        length: 30,
     })
-    @IsIn(Object.values(MovementType))
-    movementType: MovementType;
+    @IsString()
+    @IsIn(['purchase', 'sale', 'transfer_out', 'transfer_in', 'adjustment', 'return_customer', 'return_supplier', 'waste', 'internal_consumption'])
+    movementType: string;
 
     /** Cantidad: positiva para entradas, negativa para salidas */
     @Column({ type: 'int' })

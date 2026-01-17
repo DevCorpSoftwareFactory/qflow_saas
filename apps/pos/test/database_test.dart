@@ -17,25 +17,26 @@ void main() {
   group('Drift Database Connection Tests', () {
     test('Database initializes successfully', () {
       expect(database, isNotNull);
-      expect(database.schemaVersion, equals(2));
+      expect(database.schemaVersion, equals(6)); // Updated for sync tables
     });
 
-// ... (skipping unchanged tests)
-
-    test('Sales default status is draft', () async {
-      await database.into(database.localSales).insert(LocalSalesCompanion.insert(
-        id: 'draft-sale',
-        tenantId: 'tenant-001',
-        branchId: 'branch-001',
-        cashierId: 'cashier-001',
-        localId: 'local-draft',
-      ));
+    test('Sales default status is completed (POS immediate sales)', () async {
+      await database
+          .into(database.localSales)
+          .insert(LocalSalesCompanion.insert(
+            id: 'test-sale',
+            tenantId: 'tenant-001',
+            branchId: 'branch-001',
+            cashierId: 'cashier-001',
+            localId: 'local-test',
+          ));
 
       final sale = await (database.select(database.localSales)
-        ..where((s) => s.id.equals('draft-sale')))
-        .getSingle();
+            ..where((s) => s.id.equals('test-sale')))
+          .getSingle();
 
-      expect(sale.status, equals(SaleStatus.draft));
+      // POS sales are completed immediately (not draft)
+      expect(sale.status, equals(SaleStatus.completed));
     });
   });
 }

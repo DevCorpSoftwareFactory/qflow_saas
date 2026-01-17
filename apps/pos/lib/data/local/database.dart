@@ -40,12 +40,17 @@ part 'database.g.dart';
     LocalSales,
     LocalSaleItems,
     LocalSalePayments,
+    // Orders (B2B) - for stock reservations
+    LocalOrders,
+    LocalOrderItems,
     // Cash Management
     LocalCashRegisters,
     LocalCashSessions,
     LocalCashMovements,
     // Sync
     SyncQueue,
+    SyncConflicts,
+    SyncAudit,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -55,7 +60,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3; // Incremented for modular refactor
+  int get schemaVersion => 6; // Incremented for SyncAudit
 
   @override
   MigrationStrategy get migration {

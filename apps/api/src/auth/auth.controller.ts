@@ -6,6 +6,8 @@ import {
   HttpStatus,
   UseGuards,
   Req,
+  Get,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
@@ -14,6 +16,10 @@ import {
   LoginDto,
   MfaVerifyDto,
   LoginResponse,
+  RefreshTokenDto,
+  RefreshResponse,
+  ForgotPasswordDto,
+  ResetPasswordDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
@@ -23,7 +29,7 @@ interface AuthenticatedRequest extends Request {
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   /**
    * Register a new user.
@@ -46,6 +52,20 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto): Promise<LoginResponse> {
     return this.authService.login(dto);
+  }
+
+  /**
+   * Get current user profile.
+   * GET /auth/profile
+   */
+  @Get('profile')
+  @UseGuards(JwtAuthGuard)
+  async getProfile(@Req() req: AuthenticatedRequest) {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new UnauthorizedException();
+    }
+    return this.authService.getProfile(userId);
   }
 
   /**
@@ -91,5 +111,43 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async verifyMfa(@Body() dto: MfaVerifyDto): Promise<{ success: boolean }> {
     return this.authService.verifyMfa(dto.userId, dto.code);
+  }
+
+  /**
+   * Refresh access token.
+   * POST /auth/refresh
+   */
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(
+    @Body() dto: RefreshTokenDto,
+  ): Promise<RefreshResponse> {
+    return this.authService.refreshToken(dto);
+  }
+
+  /**
+   * Request password reset.
+   * POST /auth/forgot-password
+   */
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(
+    @Body() dto: ForgotPasswordDto,
+  ): Promise<{ message: string }> {
+    await this.authService.forgotPassword(dto);
+    return { message: 'Si el correo existe, se enviarán las instrucciones.' };
+  }
+
+  /**
+   * Reset password with token.
+   * POST /auth/reset-password
+   */
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(
+    @Body() dto: ResetPasswordDto,
+  ): Promise<{ success: boolean }> {
+    await this.authService.resetPassword(dto);
+    return { success: true };
   }
 }

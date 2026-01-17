@@ -10,6 +10,8 @@ import 'presentation/blocs/cart/cart_bloc.dart';
 import 'services/auth_service.dart';
 import 'services/catalog_service.dart';
 import 'services/sales_service.dart';
+import 'services/hardware/hardware_service.dart';
+import 'services/hardware/receipt_generator.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,7 +57,13 @@ class _MyAppState extends State<MyApp> {
           create: (context) =>
               CatalogBloc(getIt<CatalogService>(), getIt<EventBus>()),
         ),
-        BlocProvider(create: (context) => CartBloc(getIt<SalesService>())),
+        BlocProvider(
+          create: (context) => CartBloc(
+            getIt<SalesService>(),
+            getIt<HardwareService>(),
+            getIt<ReceiptGenerator>(),
+          ),
+        ),
       ],
       child: BlocBuilder<AppBloc, AppState>(
         builder: (context, state) {

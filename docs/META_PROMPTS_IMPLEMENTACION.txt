@@ -1,0 +1,1503 @@
+================================================================================
+                    QFLOW PRO - META-PROMPTS PARA IMPLEMENTACIÓN
+================================================================================
+
+Total de Prompts: 50
+Organizados por: Fase de Implementación
+Formato: Cada prompt es autocontenido y listo para ejecutar
+
+================================================================================
+                                FASE 1: INFRAESTRUCTURA BASE
+================================================================================
+
+--- PROMPT 1.1: CONFIGURACIÓN DEL MONOREPO -------------------------------------
+
+Archivo objetivo: pnpm-workspace.yaml, package.json, tsconfig.json, eslint, prettier
+
+Contexto:
+Implementar la configuración base del monorepo con pnpm workspaces para el 
+proyecto QFlow Pro, un ERP SaaS multi-tenant desarrollado en NestJS + TypeORM 
++ PostgreSQL.
+
+Dependencias: Ninguna (primer prompt)
+
+Requisitos específicos:
+1. pnpm-workspace.yaml debe incluir: apps/api, apps/admin, apps/portal, 
+   packages/shared, packages/typeorm-client, packages/api-contracts, 
+   packages/testing
+2. package.json debe incluir scripts para: build, test, lint, format, 
+   migration:run, migration:generate, seed, dev, start, start:prod
+3. tsconfig.json base con: target ES2022, module ESNext, strict mode, 
+   declaration, declarationMap, sourceMap, paths para aliases
+4. eslint.config.mjs con: @typescript-eslint/recommended, nestjs/recommended, 
+   prettier/recommended
+5. .prettierrc con: singleQuote, trailingComma, tabWidth 2, printWidth 120
+
+Instrucciones de implementación:
+- Crear pnpm-workspace.yaml con configuración de packages
+- Crear package.json raíz con scripts globales
+- Crear tsconfig.json base para todo el monorepo
+- Crear eslint.config.mjs con reglas apropiadas para TypeScript/NestJS
+- Crear .prettierrc y .prettierignore
+- Crear .gitignore apropiado para Node.js/NestJS
+- Verificar que los scripts funcione con pnpm run <script>
+
+Entregable: Archivos de configuración en la raíz del monorepo
+
+
+--- PROMPT 1.2: INFRAESTRUCTURA NESTJS CORE ------------------------------------
+
+Archivo objetivo: apps/api/src/main.ts, apps/api/src/app.module.ts, config/
+
+Contexto:
+Implementar el bootstrap y módulo principal de la aplicación NestJS para la 
+API de QFlow Pro.
+
+Dependencias: Prompt 1.1
+
+Requisitos específicos:
+1. main.ts debe: bootstrap de NestJS, validación de variables de entorno, 
+   configuración de Swagger, graceful shutdown, CORS enabled
+2. app.module.ts debe: importar ConfigModule, TypeOrmModule, todos los 
+   feature modules, configuración de prefijo global '/api'
+3. app.config.ts debe: exportar configuración de aplicación (nombre, versión, 
+   entorno, puerto)
+4. environment.ts debe: cargar y validar variables de entorno con class-validator
+5. Soportar modos: development, production, test
+
+Instrucciones de implementación:
+- Crear apps/api/src/main.ts con bootstrap completo
+- Crear apps/api/src/app.module.ts importando módulos base
+- Crear apps/api/src/app.config.ts con configuración de app
+- Crear apps/api/src/environment.ts con validación de env vars
+- Crear apps/api/src/constants.ts con constantes de aplicación
+- Configurar global prefix '/api' y document title 'QFlow Pro API'
+- Habilitar CORS con orígenes configurables
+- Implementar graceful shutdown con signal handlers
+
+Entregable: Archivos core de NestJS en apps/api/src/
+
+
+--- PROMPT 1.3: BASE DE DATOS TYPEORM -----------------------------------------
+
+Archivo objetivo: packages/typeorm-client/datasource.ts, database.config.ts
+
+Contexto:
+Implementar la configuración del DataSource de TypeORM para la conexión a 
+PostgreSQL con soporte multi-tenant y RLS.
+
+Dependencias: Prompt 1.1, Prompt 1.2
+
+Requisitos específicos:
+1. DataSource principal con: type postgres, synchronize false (usar migrations), 
+   logging queries, ssl mode configurables, uuidExtension, charset utf8mb4
+2. Soporte para tenant context mediante setConfig('app.current_tenant_id')
+3. Transacciones con QueryRunner para atomicidad
+4. Retry strategy para reconexión automática
+5. Database config service que lee de environment
+6. Error handling para: connection timeout, query errors, transaction failures
+
+Instrucciones de implementación:
+- Crear packages/typeorm-client/datasource.ts exportando DataSource instance
+- Crear apps/api/src/config/database.config.ts con DatabaseConfig interface
+- Crear apps/api/src/config/typeorm.config.service.ts con TypeOrmModuleAsync
+- Implementar retry strategy en connection options
+- Configurar entity schemas para validación
+- Agregar logging de queries en modo development
+- Implementar connection health check
+
+Entregable: Configuración completa de TypeORM en packages/typeorm-client/
+
+
+================================================================================
+                          FASE 2: PAQUETES COMPARTIDOS
+================================================================================
+
+--- PROMPT 2.1: SHARED - TIPOS Y ENUMS BASE ------------------------------------
+
+Contexto:
+Implementar los tipos TypeScript base y enums compartidos que serán usados 
+por todo el monorepo.
+
+Dependencias: Prompt 1.1
+
+Requisitos específicos:
+1. tenant.types.ts: Tenant, TenantSettings, TenantMetrics, TenantStatus, 
+   TenantLimits interfaces
+2. user.types.ts: User, UserStatus, UserProfile, AuthPayload interfaces
+3. pagination.types.ts: PaginatedResult, PaginationMeta, PaginationParams 
+   interfaces
+4. common.types.ts: UUID, DateTime, Money, Percentage, AuditFields interfaces
+5. movement-type.enum.ts: ENTRY, EXIT, TRANSFER, ADJUSTMENT, WASTE, SALE, RETURN
+6. order-status.enum.ts: REQUESTED, CONFIRMED, PREPARING, READY, IN_TRANSIT, 
+   DELIVERED, COMPLETED, CANCELLED, ISSUE
+7. payment-method.enum.ts: CASH, CARD, CREDIT, NEQUI, TRANSFER, WALLET
+8. license-status.enum.ts: PENDING, ACTIVE, EXPIRED, SUSPENDED, CANCELLED, REVOKED
+9. sale-status.enum.ts: DRAFT, COMPLETED, ANNULLED, REFUNDED
+10. customer-type.enum.ts: RETAIL, WHOLESALE, VIP, CORPORATE
+
+Instrucciones de implementación:
+- Crear directorio packages/shared/types/
+- Crear packages/shared/types/tenant.types.ts con Tenant interfaces
+- Crear packages/shared/types/user.types.ts con User interfaces
+- Crear packages/shared/types/pagination.types.ts con Pagination types
+- Crear packages/shared/types/common.types.ts con tipos comunes
+- Crear directorio packages/shared/enums/
+- Crear cada enum en archivo separado
+- Exportar todos los tipos y enums desde packages/shared/index.ts
+- Verificar que no haya dependencias de frameworks
+
+Entregable: Tipos y enums base en packages/shared/
+
+
+--- PROMPT 2.2: SHARED - INTERFACES Y EXCEPCIONES ------------------------------
+
+
+Contexto:
+Implementar las interfaces base y excepciones personalizadas del dominio.
+
+Dependencias: Prompt 2.1
+
+Requisitos específicos:
+1. entity.interface.ts: Entity interface base con id, createdAt, updatedAt, 
+   deletedAt, tenantId
+2. repository.interface.ts: GenericRepository interface con CRUD methods, 
+   pagination, transactions
+3. service.interface.ts: GenericService interface con business logic methods
+4. domain.exception.ts: DomainException base class con code, message, details
+5. validation.exception.ts: ValidationException con errors array
+6. not-found.exception.ts: NotFoundException con entity type y id
+7. conflict.exception.ts: ConflictException con reason
+8. forbidden.exception.ts: ForbiddenException con required permissions
+
+Instrucciones de implementación:
+- Crear directorio packages/shared/interfaces/
+- Crear packages/shared/interfaces/entity.interface.ts
+- Crear packages/shared/interfaces/repository.interface.ts
+- Crear packages/shared/interfaces/service.interface.ts
+- Crear directorio packages/shared/exceptions/
+- Crear base domain.exception.ts con constructor(code, message, details)
+- Crear subclasses: ValidationException, NotFoundException, ConflictException, 
+  ForbiddenException, UnauthorizedException
+- Exportar todo desde packages/shared/index.ts
+
+Entregable: Interfaces y excepciones en packages/shared/
+
+
+--- PROMPT 2.3: SHARED - UTILIDADES Y DECORADORES ------------------------------
+
+
+Contexto:
+Implementar utilidades puras y decoradores compartidos sin dependencias de 
+frameworks.
+
+Dependencias: Prompt 2.1, Prompt 2.2
+
+Requisitos específicos:
+1. uuid.util.ts: uuidv4 generator, uuid validation, uuid parsing
+2. date.util.ts: date formatting, date parsing, timezone conversion, 
+   date arithmetic, isBefore, isAfter, differenceInDays
+3. money.util.ts: money formatting (COP), money parsing, rounding, 
+   calculation helpers, tax calculation
+4. current-user.decorator.ts: @CurrentUser() decorator para extraer usuario
+5. current-tenant.decorator.ts: @CurrentTenant() decorator para extraer tenant
+6. public.decorator.ts: @Public() decorator para marcar endpoints públicos
+
+Instrucciones de implementación:
+- Crear directorio packages/shared/utils/
+- Implementar uuid.util.ts con funciones puras de UUID
+- Implementar date.util.ts con funciones puras de fecha (sin Date-fns para 
+   mantener zero-dependencies)
+- Implementar money.util.ts con funciones de formato monetario colombiano
+- Crear directorio packages/shared/decorators/
+- Implementar decoradores usando reflect-metadata (estándar)
+- Exportar todo desde packages/shared/index.ts
+- NO usar NestJS decorators aquí (van en common del api)
+
+Entregable: Utilidades y decoradores base en packages/shared/
+
+
+--- PROMPT 2.4: API CONTRACTS - OPENAPI BASE -----------------------------------
+
+
+Contexto:
+Implementar la especificación base de OpenAPI y DTOs contractuales para la API.
+
+Dependencias: Prompt 2.1, Prompt 2.2
+
+Requisitos específicos:
+1. openapi.yaml: version 3.0.3, info con title 'QFlow Pro API', version '1.0.0', 
+   description, servers, security schemes (BearerAuth)
+2. dto/pagination.dto.ts: PaginationRequest, PaginationResponse, 
+   PaginatedResponseDTO interfaces
+3. dto/common-response.dto.ts: ApiResponse, ApiError, ApiSuccess interfaces
+4. dto/error-code.enum.ts: Códigos de error estándar del sistema
+5. tags definitions para: Auth, Tenants, Licensing, Billing, Catalog, 
+   Inventory, Sales, Cash, Accounting, Purchases, Orders, Credits, HR
+
+Instrucciones de implementación:
+- Crear directorio packages/api-contracts/
+- Crear packages/api-contracts/openapi.yaml con especificación base
+- Definir components/schemas para: ApiResponse, ApiError, PaginationMeta
+- Definir securitySchemes: BearerAuth
+- Crear directorio packages/api-contracts/dto/
+- Implementar pagination.dto.ts con interfaces de paginación
+- Implementar common-response.dto.ts con formato estándar de respuesta
+- Implementar error-code.enum.ts con códigos de error
+- Exportar todo desde packages/api-contracts/index.ts
+
+Entregable: Contratos OpenAPI en packages/api-contracts/
+
+
+================================================================================
+                          FASE 3: TYPEORM CLIENT
+================================================================================
+
+--- PROMPT 3.1: TYPEORM ENTITIES BASE ------------------------------------------
+
+Contexto:
+Implementar las entidades base de TypeORM para Tenant, User, Role y Audit.
+
+Dependencias: Prompt 2.1, Prompt 2.3, Prompt 2.4
+
+Requisitos específicos:
+1. BaseEntity con: @PrimaryGeneratedColumn('uuid'), @CreateDateColumn, 
+   @UpdateDateColumn, @DeleteColumn, @Column('uuid', { nullable: true }) tenantId
+2. TenantEntity: companyName, tradeName, taxId, email, phone, slug (unique), 
+   status, plan, timezone, currency, logoUrl, primaryColor, maxBranches, 
+   maxUsers, trialEndsAt, subscribedAt, lastActivityAt
+3. TenantSettingsEntity: tenantId (OneToOne), timezone, currency, language, 
+   ivaRate, dateFormat, decimalPrecision
+4. TenantMetricsEntity: tenantId, currentBranchesCount, currentUsersCount, 
+   currentStorageGb, transactionsThisMonth
+5. UserEntity: tenantId, employeeId, email (unique), passwordHash, firstName, 
+   lastName, roleId, status, lastLoginAt, avatarUrl
+6. RoleEntity: tenantId, name, description, permissions (JSON), isSystem
+7. AuditLogEntity: tenantId, userId, action, entityType, entityId, oldValue 
+   (JSONB), newValue (JSONB), ipAddress, userAgent
+
+Instrucciones de implementación:
+- Crear directorio packages/typeorm-client/entities/base/
+- Crear packages/typeorm-client/entities/base/base.entity.ts con columnas base
+- Crear packages/typeorm-client/entities/base/tenant.entity.ts
+- Crear packages/typeorm-client/entities/base/tenant-settings.entity.ts
+- Crear packages/typeorm-client/entities/base/tenant-metrics.entity.ts
+- Crear packages/typeorm-client/entities/base/user.entity.ts
+- Crear packages/typeorm-client/entities/base/role.entity.ts
+- Crear packages/typeorm-client/entities/base/audit-log.entity.ts
+- Configurar relaciones: OneToMany, ManyToOne, OneToOne apropiadamente
+- Exportar desde packages/typeorm-client/entities/index.ts
+
+Entregable: Entidades base en packages/typeorm-client/entities/base/
+
+
+--- PROMPT 3.2: TYPEORM ENTITIES SAAS ------------------------------------------
+
+Archivo objetivo: packages/typeorm-client/entities/saas/*.entity.ts
+
+Contexto:
+Implementar las entidades de TypeORM para el módulo SaaS: Licencias, Planes y 
+Facturación.
+
+Dependencias: Prompt 3.1
+
+Requisitos específicos:
+1. SubscriptionPlanEntity: slug (unique), name, description, monthlyPrice, 
+   annualPrice, currency, maxBranches, maxUsers, maxStorageGb, 
+   maxTransactionsMonthly, features (JSON), enabledModules (JSON), 
+   trialDays, isPublic, sortOrder, isActive
+2. LicenseEntity: licenseKey (unique), tenantId (FK), planId (FK), type, 
+   status, currentPeriodStart, currentPeriodEnd, autoRenew, renewsAt, 
+   activatedAt, activatedFromIp, apiToken, apiTokenExpiresAt
+3. LicenseActivationKeyEntity: key (unique), planId (FK), type, isUsed, 
+   usedAt, usedByTenantId, expiresAt
+4. SaaSInvoiceEntity: invoiceNumber (unique), tenantId (FK), billingPeriodStart, 
+   billingPeriodEnd, planName, baseAmount, taxAmount, totalAmount, 
+   discountPercent, discountAmount, status, dueDate, paidAt, 
+   paymentMethod, paymentReference, pdfUrl, notes
+5. SaaSPaymentEntity: invoiceId (FK), amount, paymentMethod, paymentReference, 
+   status, processedAt, notes
+6. SaaSCreditNoteEntity: invoiceId (FK), amount, reason, status, createdAt
+
+Instrucciones de implementación:
+- Crear directorio packages/typeorm-client/entities/saas/
+- Crear packages/typeorm-client/entities/saas/subscription-plan.entity.ts
+- Crear packages/typeorm-client/entities/saas/license.entity.ts
+- Crear packages/typeorm-client/entities/saas/license-activation-key.entity.ts
+- Crear packages/typeorm-client/entities/saas/saas-invoice.entity.ts
+- Crear packages/typeorm-client/entities/saas/saas-payment.entity.ts
+- Crear packages/typeorm-client/entities/saas/saas-credit-note.entity.ts
+- Configurar índices: licenseKey (unique), invoiceNumber (unique)
+- Configurar cascadas apropiadas en delete
+- Exportar desde packages/typeorm-client/entities/index.ts
+
+Entregable: Entidades SaaS en packages/typeorm-client/entities/saas/
+
+
+--- PROMPT 3.3: TYPEORM ENTITIES CATALOG ---------------------------------------
+
+Archivo objetivo: packages/typeorm-client/entities/catalog/*.entity.ts
+
+Contexto:
+Implementar las entidades de TypeORM para el catálogo de productos: Productos, 
+Categorías, Marcas, Variantes y Listas de Precios.
+
+Dependencias: Prompt 3.1
+
+Requisitos específicos:
+1. ProductEntity: tenantId, code (unique), name, description, hasExpiry, 
+   ivaRate, categoryId (FK), brandId (FK), status, imageUrl, tags (JSON)
+2. ProductCategoryEntity: tenantId, code, name, description, parentId (FK), 
+   level, sortOrder, isActive
+3. BrandEntity: tenantId, code, name, description, logoUrl, website, isActive
+4. UnitOfMeasureEntity: tenantId, code, name, abbreviation, decimalPlaces, 
+   isActive
+5. ProductVariantEntity: tenantId, productId (FK), sku (unique), barcode (unique), 
+   name, unitOfMeasureId (FK), netContent, grossWeight, dimensions (JSON), 
+   imageUrl, status, costPrice, minStock, maxStock
+6. PriceListEntity: tenantId, name, description, type (RETAIL, WHOLESALE, VIP), 
+   currency, validFrom, validTo, isActive, isDefault
+7. PriceListItemEntity: tenantId, priceListId (FK), variantId (FK), price, 
+   costPrice, minQuantityForPrice, promotion (JSON)
+
+Instrucciones de implementación:
+- Crear directorio packages/typeorm-client/entities/catalog/
+- Crear cada entity con decoradores TypeORM apropiados
+- Configurar relaciones: Product → ProductCategory, Product → Brand, 
+  Product → ProductVariant, ProductVariant → UnitOfMeasure, 
+  PriceList → PriceListItems
+- Crear índices compuestos con tenantId para todas las tablas
+- Configurar cascade deletes apropiados
+- Exportar desde packages/typeorm-client/entities/index.ts
+
+Entregable: Entidades de Catálogo en packages/typeorm-client/entities/catalog/
+
+
+--- PROMPT 3.4: TYPEORM ENTITIES INVENTORY Y TRANSACCIONES ----------------------
+
+Archivo objetivo: packages/typeorm-client/entities/inventory/*.entity.ts
+
+Contexto:
+Implementar las entidades de TypeORM para inventario y transacciones: Lotes, 
+Movimientos, Ventas, Caja.
+
+Dependencias: Prompt 3.1, Prompt 3.3
+
+Requisitos específicos:
+1. InventoryLotEntity: tenantId, branchId (FK), variantId (FK), lotNumber, 
+   expiryDate, unitCost, currentQuantity, initialQuantity, status, 
+   supplierId (FK), purchaseInvoiceId (FK)
+2. InventoryMovementEntity: tenantId, lotId (FK), movementType, quantity, 
+   previousQuantity, newQuantity, referenceType, referenceId, notes, 
+   createdBy (FK)
+3. InventoryReservationEntity: tenantId, lotId (FK), orderId (FK), quantity, 
+   status, expiresAt, createdAt
+4. InventoryAdjustmentEntity: tenantId, branchId (FK), type, reason, status, 
+   approvedBy (FK), approvedAt, notes
+5. SaleEntity: tenantId, branchId (FK), cashierId (FK), customerId (FK), 
+   saleNumber, saleType, status, subtotal, discountAmount, taxAmount, 
+   totalAmount, totalCost, profitMargin, paymentMethod, notes
+6. SaleDetailEntity: tenantId, saleId (FK), variantId (FK), lotId (FK), 
+   quantity, unitPrice, discountPercent, discountAmount, taxRate, 
+   taxAmount, subtotal, total
+7. SalePaymentEntity: tenantId, saleId (FK), paymentMethod, amount, 
+   reference, cardLast4, cardBrand, status
+8. CashSessionEntity: tenantId, branchId (FK), cashRegisterId (FK), 
+   userId (FK), openingDate, closingDate, initialAmount, totalCashIn, 
+   totalCashOut, totalSalesCash, totalCreditPayments, systemAmount, 
+   declaredAmount, difference, status
+9. CashMovementEntity: tenantId, sessionId (FK), movementType, category, 
+   amount, beneficiary, concept, referenceType, referenceId, evidenceUrl
+
+Instrucciones de implementación:
+- Crear directorio packages/typeorm-client/entities/inventory/
+- Crear InventoryLotEntity con índices en: (tenantId, branchId, variantId)
+- Crear InventoryMovementEntity como tabla append-only (sin UPDATE/DELETE)
+- Crear SaleEntity con generación de saleNumber
+- Crear SaleDetailEntity con cascade insert
+- Crear CashSessionEntity para cuadre ciego
+- Crear CashMovementEntity para tracking de movimientos
+- Configurar foreign keys a todas las tablas relacionadas
+- Exportar desde packages/typeorm-client/entities/index.ts
+
+Entregable: Entidades de Inventory en packages/typeorm-client/entities/inventory/
+
+
+--- PROMPT 3.5: TYPEORM REPOSITORIES -------------------------------------------
+
+Archivo objetivo: packages/typeorm-client/repositories/*.repository.ts
+
+Contexto:
+Implementar los repositories personalizados de TypeORM para todas las entidades.
+
+Dependencias: Prompt 3.1, Prompt 3.2, Prompt 3.3, Prompt 3.4
+
+Requisitos específicos:
+1. TenantRepository: findById, findBySlug, findByTaxId, findAll, 
+   countByStatus, countByPlan
+2. UserRepository: findByEmail, findByTenant, findActive, 
+   findWithPermissions, validatePassword
+3. LicenseRepository: findByTenantId, findByLicenseKey, findActive, 
+   findExpiring, findByStatus
+4. ProductRepository: findByCode, findWithFilters, searchByName, 
+   findByCategory
+5. VariantRepository: findBySku, findByBarcode, findByProduct, 
+   findAvailableStock
+6. InventoryLotRepository: findByBranch, findByVariant, findExpiring, 
+   findByFIFO, findAvailable
+7. SaleRepository: findByNumber, findByDateRange, findByBranch, 
+   findByCashier, getDailySummary
+8. CashSessionRepository: findOpen, findByBranch, getSessionHistory
+9. Generic Repository methods: paginate, findOne, save, delete, update
+
+Instrucciones de implementación:
+- Crear directorio packages/typeorm-client/repositories/
+- Crear base GenericRepository con métodos comunes
+- Crear repository para cada entidad con métodos específicos
+- Implementar paginación con Take/Skip y totales
+- Implementar filtros dinámicos con QueryBuilder
+- Usar tenant_id filter en todos los métodos
+- Exportar desde packages/typeorm-client/repositories/index.ts
+- Exportar DataSource desde packages/typeorm-client/datasource.ts
+
+Entregable: Repositories completos en packages/typeorm-client/repositories/
+
+
+================================================================================
+                        FASE 4: MÓDULOS CORE SAAS
+================================================================================
+
+--- PROMPT 4.1: AUTH MODULE - JWT Y AUTORIZACIÓN --------------------------------
+
+Archivo objetivo: apps/api/src/auth/*.ts
+
+Contexto:
+Implementar el módulo de autenticación completo con JWT strategy, refresh 
+tokens y guards de autorización.
+
+Dependencias: Prompt 2.1, Prompt 2.3, Prompt 3.1, Prompt 3.2, Prompt 3.5
+
+Requisitos específicos:
+1. auth.module.ts: imports JwtModule, PassportModule, ConfigModule
+2. auth.controller.ts: POST /auth/login, POST /auth/logout, 
+   POST /auth/refresh, POST /auth/register (para clientes)
+3. auth.service.ts: validateUser, login, logout, refresh, register, 
+   changePassword, validateToken
+4. strategies/jwt.strategy.ts: JWT Strategy con payload: sub, email, tenantId, 
+   role, permissions
+5. strategies/jwt-refresh.strategy.ts: Refresh token strategy
+6. guards/jwt-auth.guard.ts: Verify JWT token, set user in request
+7. guards/permissions.guard.ts: Check required permissions
+8. guards/roles.guard.ts: Check required roles
+9. dto/login.dto.ts: email, password, captchaToken (opcional)
+10. dto/register.dto.ts: email, password, firstName, lastName, tenantId
+11. dto/token-response.dto.ts: accessToken, refreshToken, expiresIn, tokenType
+
+Instrucciones de implementación:
+- Crear apps/api/src/auth/ con todos los subdirectorios
+- Implementar JwtStrategy con validate que extrae usuario de DB
+- Implementar JwtAuthGuard con canActivate verificando token
+- Implementar PermissionsGuard con reflection de metadata
+- Implementar AuthService con bcrypt para passwords
+- Crear DTOs con class-validator decorators
+- Configurar JwtModule con secrets de config
+- Implementar logout que invalida refresh token
+- Crear endpoint de refresh token con rotación
+
+Entregable: Módulo Auth completo en apps/api/src/auth/
+
+
+--- PROMPT 4.2: TENANTS MODULE - CRUD COMPLETO ----------------------------------
+
+Archivo objetivo: apps/api/src/tenants/*.ts
+
+Contexto:
+Implementar el módulo completo de gestión de tenants con CRUD, métricas y 
+eventos de dominio.
+
+Dependencias: Prompt 3.1, Prompt 3.2, Prompt 4.1, Prompt 2.4
+
+Requisitos específicos:
+1. tenants.module.ts: imports TypeOrmModule for TenantEntity
+2. tenants.controller.ts: GET /tenants, GET /tenants/:id, POST /tenants, 
+   PUT /tenants/:id, DELETE /tenants/:id, GET /tenants/:id/metrics, 
+   PUT /tenants/:id/status
+3. tenants.service.ts: create, update, findById, findBySlug, findAll, 
+   deactivate, reactivate, validateLimits, checkSlugAvailability
+4. tenants.domain.service.ts: validateTaxId (NIT validation), 
+   calculateLimits (by plan), checkSlugAvailability
+5. dto/create-tenant.dto.ts: companyName, tradeName, taxId, email, 
+   planId, timezone, currency
+6. dto/update-tenant.dto.ts: partial fields de Tenant
+7. dto/tenant-response.dto.ts: incluye metrics y settings
+8. dto/tenant-query.dto.ts: filters, pagination, sort
+9. events/tenant-created.event.ts: con tenantId, slug, planId
+10. events/handlers/: TenantCreatedEventHandler, TenantDeactivatedEventHandler
+11. repositories/tenant.repository.interface.ts
+
+Instrucciones de implementación:
+- Crear apps/api/src/tenants/ con estructura completa
+- Implementar validación de NIT colombiano en domain service
+- Implementar límites por plan (maxBranches, maxUsers)
+- Crear slug automático desde companyName si no se proporciona
+- Implementar soft delete (deletedAt)
+- Integrar con Licensing para crear license trial automáticamente
+- Agregar cacheo de límites en TenantMetrics
+- Documentar todos los endpoints con Swagger decorators
+
+Entregable: Módulo Tenants completo en apps/api/src/tenants/
+
+
+--- PROMPT 4.3: LICENSING MODULE - LICENCIAS SAAS -------------------------------
+
+Archivo objetivo: apps/api/src/licensing/*.ts
+
+Contexto:
+Implementar el módulo de gestión de licencias SaaS con planes, activación y 
+renovación.
+
+Dependencias: Prompt 3.2, Prompt 4.1, Prompt 4.2, Prompt 2.4
+
+Requisitos específicos:
+1. licensing.module.ts: imports TypeOrmModule for LicenseEntity, 
+   SubscriptionPlanEntity
+2. licensing.controller.ts: GET /licensing/plans, POST /licensing/trial, 
+   POST /licensing/activate, GET /licensing/status, POST /licensing/renew, 
+   PUT /licensing/plan, POST /licensing/cancel, POST /licensing/suspend
+3. licensing.service.ts: createTrial, activate, getStatus, renew, changePlan, 
+   suspend, reactivate, validateAccess, checkLimits
+4. plan.service.ts: findAll, findBySlug, getDefaultPlan, validatePlanLimits
+5. dto/create-license.dto.ts: tenantId, planId, type, period
+6. dto/activate-license.dto.ts: activationKey
+7. dto/license-response.dto.ts: incluye status, limits, currentUsage
+8. dto/plan-response.dto.ts: incluye features, limits, pricing
+9. events/: LicenseActivatedEvent, LicenseExpiredEvent, 
+   LicenseSuspendedEvent, PlanChangedEvent
+10. repositories/license.repository.ts
+
+Instrucciones de implementación:
+- Crear apps/api/src/licensing/ con estructura completa
+- Implementar generación de license key (QFLOW-XXXX-XXXX-XXXX-XXXX)
+- Implementar validación de activation key (solo una vez, expiration)
+- Implementar changePlan con cálculo de prorrata
+- Integrar con Billing para generar factura al activar
+- Integrar con Tenant para actualizar límites
+- Validar límites en tiempo real en validateAccess
+- Crear eventos para: Billing, Notification, Tenant
+
+Entregable: Módulo Licensing completo en apps/api/src/licensing/
+
+
+--- PROMPT 4.4: BILLING MODULE - FACTURACIÓN SAAS ------------------------------
+
+Archivo objetivo: apps/api/src/billing/*.ts
+
+Contexto:
+Implementar el módulo de facturación SaaS con generación de facturas, gestión 
+de pagos y reportes.
+
+Dependencias: Prompt 3.2, Prompt 4.1, Prompt 4.3, Prompt 2.4
+
+Requisitos específicos:
+1. billing.module.ts: imports TypeOrmModule for SaaSInvoice, SaaSPayment
+2. billing.controller.ts: GET /billing/invoices, GET /billing/invoices/:id, 
+   GET /billing/invoices/:id/pdf, GET /billing/payments, GET /billing/due, 
+   POST /billing/pay, GET /billing/aging
+3. billing.service.ts: generateInvoice, getInvoices, getInvoicePdf, 
+   markAsPaid, calculateProrate, getAgingReport, generateMonthlyReport
+4. payment.service.ts: processPayment, recordPayment, refund, 
+   getPaymentMethods
+5. dto/create-invoice.dto.ts: licenseId, billingPeriodStart, billingPeriodEnd
+6. dto/record-payment.dto.ts: invoiceId, amount, method, reference
+7. dto/invoice-response.dto.ts: incluye items, payments, balance
+8. events/: InvoiceGeneratedEvent, PaymentReceivedEvent
+9. repositories/billing.repository.ts
+
+Instrucciones de implementación:
+- Crear apps/api/src/billing/ con estructura completa
+- Implementar generación automática de invoice number (NF-YYYY-NNNN)
+- Generar PDF según formato DIAN Colombia
+- Implementar cálculo de prorrata para cambios de plan
+- Integrar con Payment gateway (mock inicialmente)
+- Generar aging report por buckets: current, 1-30, 31-60, 61-90, 90+
+- Crear eventos para NotificationService
+- Validar que tenant tenga license activa antes de facturar
+
+Entregable: Módulo Billing completo en apps/api/src/billing/
+
+
+--- PROMPT 4.5: COMMON GUARDS E INTERCEPTORS -----------------------------------
+
+Archivo objetivo: apps/api/src/common/guards/*.ts, apps/api/src/common/interceptors/*.ts
+
+Contexto:
+Implementar guards e interceptors reutilizables para toda la aplicación.
+
+Dependencias: Prompt 4.1, Prompt 2.2
+
+Requisitos específicos:
+1. guards/jwt-auth.guard.ts: versión mejorada que settea tenant context
+2. guards/permissions.guard.ts: verificación granular de permisos
+3. guards/roles.guard.ts: verificación de roles específicos
+4. guards/throttle.guard.ts: rate limiting por endpoint/user
+5. guards/tenant-scope.guard.ts: scope de tenant para acceso a recursos
+6. interceptors/audit.interceptor.ts: logging automático de requests
+7. interceptors/transform.interceptor.ts: normalización de respuestas
+8. interceptors/tenant-context.interceptor.ts: inyecta tenant en request
+9. interceptors/timing.interceptor.ts: métricas de performance
+10. interceptors/cache.interceptor.ts: caching de responses
+11. filters/http-exception.filter.ts: manejo centralizado de excepciones
+12. filters/typeorm-exception.filter.ts: traducción de errores TypeORM
+
+Instrucciones de implementación:
+- Crear apps/api/src/common/guards/ y apps/api/src/common/interceptors/
+- Implementar ThrottleGuard con Redis o memory storage
+- Implementar AuditInterceptor que loggea: userId, tenantId, action, 
+  duration, statusCode
+- Implementar TenantContextInterceptor que lee de JWT y settea session
+- Implementar ExceptionFilters que retornan ApiError format estándar
+- Configurar todos los guards/interceptors como providers
+- Documentar uso en comentarios
+
+Entregable: Guards e Interceptors en apps/api/src/common/
+
+
+--- PROMPT 4.6: COMMON DECORATORS ---------------------------------------------
+
+Archivo objetivo: apps/api/src/common/decorators/*.ts
+
+Contexto:
+Implementar decoradores NestJS compartidos para toda la aplicación.
+
+Dependencias: Prompt 2.3, Prompt 4.5
+
+Requisitos específicos:
+1. @CurrentUser(): extrae usuario del request (del JWT payload)
+2. @CurrentTenant(): extrae tenantId del request
+3. @Roles(...roles): declara roles requeridos para endpoint
+4. @Permissions(...permissions): declara permisos requeridos
+5. @Branches(...branchIds): declara sucursales accesibles
+6. @Public(): marca endpoint como público (sin auth)
+7. @TenantScoped(): marca endpoint como tenant-scoped
+8. @Throttle(max, ttl): configura rate limiting por endpoint
+9. @AuditLog(action): decorator para logging automático
+10. @ApiResponse(status, schema): swagger response decorator
+11. @ApiPaginatedResponse(): swagger paginated response
+
+Instrucciones de implementación:
+- Crear apps/api/src/common/decorators/
+- Implementar cada decorador usando SetMetadata de NestJS
+- Crear CurrentUser con ExecutionContext extraction
+- Crear Roles con validation de roles válidos
+- Crear Public para marcar endpoints sin auth
+- Exportar desde apps/api/src/common/index.ts
+- Integrar con guards para metadata inspection
+
+Entregable: Decorators en apps/api/src/common/decorators/
+
+
+--- PROMPT 4.7: CONFIG MODULE -------------------------------------------------
+
+Archivo objetivo: apps/api/src/config/*.ts
+
+Contexto:
+Implementar el módulo de configuración de la aplicación con load de variables 
+de entorno.
+
+Dependencias: Prompt 1.2, Prompt 1.3
+
+Requisitos específicos:
+1. config.module.ts: exports ConfigModule global
+2. database.config.ts: DatabaseConfig interface con host, port, username, 
+   password, name, synchronize, logging, ssl
+3. jwt.config.ts: JwtConfig interface con secret, expiresIn, refreshSecret, 
+   refreshExpiresIn
+4. swagger.config.ts: SwaggerConfig con title, description, version, 
+   tag, bearerConfig
+5. app.config.ts: AppConfig con name, version, environment, port, apiPrefix
+6. mail.config.ts: MailConfig con host, port, user, pass, from
+7. redis.config.ts: RedisConfig con host, port, keyPrefix
+8. throttle.config.ts: ThrottleConfig con default, auth, api limits
+
+Instrucciones de implementación:
+- Crear apps/api/src/config/ con archivos separados
+- Usar class-validator para validación de env vars
+- Implementar ConfigService con get methods tipados
+- Crear configuration function para useFactory
+- Integrar con TypeOrmModuleAsync y JwtModuleAsync
+- Documentar todas las variables requeridas
+- Agregar soporte para .env file en development
+
+Entregable: Configuración completa en apps/api/src/config/
+
+
+--- PROMPT 4.8: OPENAPI SETUP -------------------------------------------------
+
+Archivo objetivo: apps/api/src/swagger.ts, decorators/
+
+Contexto:
+Configurar Swagger/OpenAPI documentación completa para toda la API.
+
+Dependencias: Prompt 2.4, Prompt 4.6
+
+Requisitos específicos:
+1. swagger.ts: SwaggerModule setup con document, customSiteTitle, 
+   customCss, customfavIcon, swaggerButtons, sdkVersions
+2. decorators/api-tags.ts: @ApiTag para agrupar endpoints
+3. decorators/api-response.ts: @ApiResponse con success/error schemas
+4. decorators/api-operation.ts: @ApiOperation con summary, description
+5. decorators/api-parameters.ts: @ApiParam, @ApiQuery decorators
+6. decorators/api-security.ts: @ApiBearerAuth, @ApiOAuth2
+7. schemas/: Common schemas como ApiResponse, Pagination, ErrorResponse
+8. Enums para tags: ApiTags.AUTH, ApiTags.TENANTS, ApiTags.INVENTORY, etc.
+
+Instrucciones de implementación:
+- Crear apps/api/src/swagger.ts con configuración global
+- Crear directorio apps/api/src/decorators/ para swagger decorators
+- Implementar decorators usando @nestjs/swagger
+- Crear schemas reutilizables para ApiResponse
+- Configurar tags con descripciones
+- Habilitar try-it-out button
+- Configurar auth en Swagger UI
+- Documentar todos los endpoints existentes
+
+Entregable: Swagger completo en apps/api/src/
+
+
+--- PROMPT 4.9: HEALTH CHECK --------------------------------------------------
+
+Archivo objetivo: apps/api/src/health/*.ts
+
+Contexto:
+Implementar endpoints de health check para monitoring y load balancers.
+
+Dependencias: Prompt 1.3, Prompt 4.7
+
+Requisitos específicos:
+1. health.controller.ts: GET /health, GET /health/ready, GET /health/live
+2. health.module.ts: imports TerminusModule, TypeOrmModule
+3. indicators/database.indicator.ts: verifica conexión a PostgreSQL
+4. indicators/memory.indicator.ts: verifica uso de memoria
+5. indicators/disk.indicator.ts: verifica espacio en disco
+6. health.response.ts: standardized health response con status, details, 
+   timestamp, version
+7. readiness check: database connection, migrations applied, license valid
+8. liveness check: process running, memory within limits
+
+Instrucciones de implementación:
+- Crear apps/api/src/health/ con estructura completa
+- Implementar TerminusModule integration
+- Crear custom health indicators
+- Agregar database health check con TypeORM query
+- Implementar response standardization
+- Configurar para Kubernetes probes
+- Agregar a main.ts para /health endpoint
+
+Entregable: Health check module en apps/api/src/health/
+
+
+================================================================================
+                        FASE 5: MÓDULOS CORE ERP
+================================================================================
+
+--- PROMPT 5.1: CATALOG MODULE - PRODUCTOS -------------------------------------
+
+Archivo objetivo: apps/api/src/catalog/*.ts
+
+Contexto:
+Implementar el módulo completo de catálogo de productos con categorías, 
+marcas, variantes y precios.
+
+Dependencias: Prompt 3.3, Prompt 3.5, Prompt 4.5, Prompt 4.6, Prompt 4.8
+
+Requisitos específicos:
+1. catalog.module.ts: imports TypeOrmModule for Product, Category, Brand, 
+   Variant, PriceList entities
+2. product.controller.ts: CRUD products con filtros por category, brand, 
+   status, search
+3. category.controller.ts: CRUD categories, GET /tree para jerarquía
+4. brand.controller.ts: CRUD brands
+5. variant.controller.ts: GET /:id, GET /:id/barcode/:barcode
+6. price-list.controller.ts: CRUD price lists, GET /:id/export
+7. services/product.service.ts: create, update, delete, findById, 
+   findWithFilters, generateCode
+8. services/variant.service.ts: create, update, generateSKU, generateBarcode, 
+   findByBarcode
+9. services/category.service.ts: create, update, findTree, validateParent
+10. services/pricing.service.ts: createPriceList, setVariantPrice, 
+    getVariantPrice, applyVolumeDiscount, validatePriceListItems
+11. dto/: create-product, create-variant, create-category, 
+    create-price-list, query filters
+12. events/ProductCreatedEvent para InventoryService
+13. repositories/: product.repository.ts, variant.repository.ts
+
+Instrucciones de implementación:
+- Crear apps/api/src/catalog/ con subdirectorios por entidad
+- Implementar generación automática de código de producto
+- Implementar generación de SKU y código de barras EAN-13
+- Implementar árbol de categorías recursivo
+- Implementar sistema de precios por lista de precios
+- Implementar descuentos por volumen
+- Integrar con Inventory para crear lotes iniciales si aplica
+- Validar unicidad de código, SKU, barcode
+
+Entregable: Módulo Catalog completo en apps/api/src/catalog/
+
+
+--- PROMPT 5.2: INVENTORY MODULE - LOTES Y MOVIMIENTOS -------------------------
+
+Archivo objetivo: apps/api/src/inventory/*.ts
+
+Contexto:
+Implementar el módulo completo de inventario con lotes FIFO, movimientos, 
+ajustes y transferencias.
+
+Dependencias: Prompt 3.4, Prompt 3.5, Prompt 5.1, Prompt 4.5, Prompt 4.6
+
+Requisitos específicos:
+1. inventory.module.ts: imports TypeOrmModule for Lot, Movement, 
+   Reservation, Adjustment entities
+2. stock.controller.ts: GET /stock (consolidated), GET /stock/:variantId
+3. lot.controller.ts: GET /lots, GET /lots/:id, GET /expiring, GET /low-stock
+4. adjustment.controller.ts: POST /adjustments, GET /adjustments/:id, 
+   POST /:id/approve, POST /:id/reject
+5. transfer.controller.ts: POST /transfers, GET /transfers/:id
+6. services/stock.service.ts: getAvailableStock, getStockByBranch, 
+   getStockByProduct, getLowStockAlerts, getConsolidatedStock
+7. services/lot.service.ts: createLot, findById, findByNumber, findByVariant, 
+   markAsDepleted, markAsExpired
+8. services/movement.service.ts: registerEntry, registerExit, registerTransfer, 
+   getMovements, getFIFOConsumption
+9. services/adjustment.service.ts: create, approve, reject, findById
+10. services/expiry.service.ts: getExpiringLots, processExpiredLots, 
+    getExpiryAlerts, createWasteRecord
+11. services/reservation.service.ts: createReservation, releaseReservation, 
+    consumeReservation, expireOldReservations
+12. dto/: create-lot, create-adjustment, transfer, stock-query
+13. events/: StockLowAlertEvent, LotExpiredEvent, TransferCompletedEvent
+14. repositories/: lot.repository.ts, movement.repository.ts
+
+Instrucciones de implementación:
+- Crear apps/api/src/inventory/ con estructura completa
+- Implementar FIFO consumption: siempre el lote más antiguo (created_at ASC)
+- Implementar reservas con expiración (24 horas configurable)
+- Implementar job de procesamiento de lotes vencidos (diario)
+- Implementar ajustes con workflow de aprobación
+- Implementar transferencias entre sucursales
+- Validar que stock nunca se actualice directamente (solo por movement)
+- inventory_movements debe ser append-only (no UPDATE/DELETE)
+
+Entregable: Módulo Inventory completo en apps/api/src/inventory/
+
+
+--- PROMPT 5.3: SALES MODULE - VENTAS POS -------------------------------------
+
+Archivo objetivo: apps/api/src/sales/*.ts
+
+Contexto:
+Implementar el módulo completo de ventas POS con pricing, pagos, inventario 
+y tickets.
+
+Dependencias: Prompt 3.4, Prompt 3.5, Prompt 5.1, Prompt 5.2, Prompt 4.5
+
+Requisitos específicos:
+1. sales.module.ts: imports TypeOrmModule for Sale, SaleDetail, 
+   SalePayment entities
+2. sales.controller.ts: POST /sales (create), GET /sales/:id, GET /sales, 
+   GET /sales/today, POST /:id/annul, POST /:id/refund, 
+   GET /:id/ticket, POST /:id/print
+3. services/sale.service.ts: create, findById, findByDateRange, annul, 
+    refund, getDailySummary
+4. services/sale-pricing.service.ts: calculateTotals, applyPromotions, 
+    validateCredit, calculateChange
+5. services/sale-payment.service.ts: registerPayment, processCashPayment, 
+    processCardPayment, processCreditPayment, refundPayment
+6. services/sale-inventory.service.ts: consumeInventory, restoreInventory, 
+    getCostOfSale
+7. services/ticket.service.ts: generateTicket, sendTicketByWhatsApp, 
+    sendTicketByEmail
+8. dto/: create-sale, sale-item, payment, refund, ticket-options
+9. events/SaleCreatedEvent para AccountingService
+10. repositories/: sale.repository.ts, sale-detail.repository.ts
+
+Instrucciones de implementación:
+- Crear apps/api/src/sales/ con estructura completa
+- Validar caja abierta antes de crear venta
+- Validar stock disponible antes de confirmar
+- Consumir inventario por FIFO al confirmar venta
+- Aplicar IVA según tarifa del producto
+- Generar número de venta: VYYYYMMDD-SUC-00001
+- Implementar anulación (hard delete con justificación)
+- Implementar devolución parcial
+- Generar ticket para impresión térmica
+
+Entregable: Módulo Sales completo en apps/api/src/sales/
+
+
+--- PROMPT 5.4: CASH MODULE - CONTROL DE CAJA ---------------------------------
+
+Archivo objetivo: apps/api/src/cash/*.ts
+
+Contexto:
+Implementar el módulo de control de caja con cuadre ciego, movimientos y 
+conciliación.
+
+Dependencias: Prompt 3.4, Prompt 3.5, Prompt 5.3, Prompt 4.5
+
+Requisitos específicos:
+1. cash.module.ts: imports TypeOrmModule for CashSession, CashMovement
+2. session.controller.ts: POST /sessions/open, POST /sessions/close, 
+    GET /sessions/current, GET /sessions/:id, GET /sessions
+3. movement.controller.ts: POST /movements, GET /movements
+4. services/cash-session.service.ts: openSession, closeSession, 
+    getCurrentSession, getSessionById, getSessionHistory
+5. services/cash-movement.service.ts: registerMovement, registerIncome, 
+    registerExpense, getMovementsBySession
+6. services/cash-drawer.service.ts: countDenominations, calculateSystemAmount
+7. services/cash-reconciliation.service.ts: performReconciliation, 
+    getDiscrepancyReport, approveDiscrepancy
+8. dto/: open-session, close-session, create-movement, denomination-count
+9. events/CashSessionClosedEvent para AccountingService
+10. repositories/: cash-session.repository.ts, cash-movement.repository.ts
+
+Instrucciones de implementación:
+- Crear apps/api/src/cash/ con estructura completa
+- Implementar cuadre ciego: system_amount se calcula pero NO se muestra
+- declared_amount es el conteo físico del cajero
+- Si difference > threshold (50000 COP), requerir justificación
+- Si justificación insuficiente, requerir aprobación de supervisor
+- Implementar conteo de denominaciones para cierre
+- Validar que solo haya una sesión abierta por caja
+- Generar eventos para Accounting al cerrar
+
+Entregable: Módulo Cash completo en apps/api/src/cash/
+
+
+--- PROMPT 5.5: ACCOUNTING MODULE - CONTABILIDAD -------------------------------
+
+Archivo objetivo: apps/api/src/accounting/*.ts
+
+Contexto:
+Implementar el módulo de contabilidad automatizada NIIF PYMES con PUC 
+colombiano y partida doble.
+
+Dependencias: Prompt 3.4, Prompt 3.5, Prompt 4.5, Prompt 4.6
+
+Requisitos específicos:
+1. accounting.module.ts: imports TypeOrmModule for ChartOfAccount, 
+   AccountingPeriod, AccountingEntry entities
+2. chart-of-accounts.controller.ts: GET /chart-of-accounts
+3. period.controller.ts: GET /periods, POST /periods, POST /periods/:id/close
+4. entry.controller.ts: GET /entries, GET /entries/:id, GET /entries/:id/pdf, 
+    GET /trial-balance
+5. services/chart-of-accounts.service.ts: initializePUC, findByCode, 
+    findByLevel, getAccountType
+6. services/accounting-period.service.ts: createPeriod, findByYearMonth, 
+    closePeriod, reopenPeriod, getOpenPeriod
+7. services/entry.service.ts: createEntry, findById, findByReference, 
+    postEntry, voidEntry
+8. services/double-entry-validation.service.ts: validateEntry, validateBalance
+9. services/automatic-entry.service.ts: generateSaleEntry, generatePurchaseEntry,
+    generateCashEntry, generateCreditEntry, generateAdjustmentEntry
+10. dto/: create-entry, create-period, entry-line, trial-balance-query
+11. repositories/: chart-of-accounts.repository.ts, entry.repository.ts
+
+Instrucciones de implementación:
+- Crear apps/api/src/accounting/ con estructura completa
+- Implementar PUC colombiano base (1xxx a 8xxx)
+- Implementar partida doble: SUM(debit) = SUM(credit) con tolerancia 0.01
+- Validar que cada línea tenga débito O crédito, no ambos
+- Implementar períodos contables mensuales
+- Generar asientos automáticos desde eventos: SaleCreated, CashSessionClosed, 
+  PurchaseInvoiceCreated, InventoryAdjusted
+- Implementar cierre de período (no permite nuevas transacciones)
+- Generar balance de prueba
+
+Entregable: Módulo Accounting completo en apps/api/src/accounting/
+
+
+--- PROMPT 5.6: PURCHASES MODULE - PROVEEDORES ---------------------------------
+
+Archivo objetivo: apps/api/src/purchases/*.ts
+
+Contexto:
+Implementar el módulo de compras con proveedores, órdenes, facturas y pagos.
+
+Dependencias: Prompt 3.4, Prompt 3.5, Prompt 5.1, Prompt 5.2, Prompt 4.5
+
+Requisitos específicos:
+1. purchases.module.ts: imports TypeOrmModule for Supplier, PurchaseOrder, 
+   PurchaseInvoice, PurchasePayment entities
+2. supplier.controller.ts: CRUD suppliers
+3. purchase-order.controller.ts: GET /orders, POST /orders, GET /orders/:id, 
+    POST /orders/:id/receive
+4. purchase-invoice.controller.ts: GET /invoices, POST /invoices
+5. payment.controller.ts: POST /payments, GET /payables
+6. services/supplier.service.ts: create, update, findById, findWithFilters, 
+    deactivate
+7. services/purchase-order.service.ts: create, update, findById, findByStatus, 
+    cancel, receive
+8. services/purchase-invoice.service.ts: create, findById, findBySupplier, 
+    applyPayment, getAccountPayable
+9. services/purchase-payment.service.ts: createPayment, findBySupplier, 
+    getPaymentHistory
+10. dto/: create-supplier, create-order, receive-items, create-invoice, 
+    create-payment
+11. events/PurchaseOrderCreatedEvent, InvoiceReceivedEvent
+12. repositories/: supplier.repository.ts, order.repository.ts
+
+Instrucciones de implementación:
+- Crear apps/api/src/purchases/ con estructura completa
+- Implementar workflow: Orden → Recepción → Factura → Pago
+- Recepción puede ser parcial de la orden
+- Crear lotes de inventario en recepción
+- Actualizar cuentas por pagar con facturas
+- Registrar pagos a proveedor
+- Calcular retención en fuente según tipo de compra
+
+Entregable: Módulo Purchases completo en apps/api/src/purchases/
+
+
+--- PROMPT 5.7: ORDERS MODULE - PEDIDOS PORTAL --------------------------------
+
+Archivo objetivo: apps/api/src/orders/*.ts
+
+Contexto:
+Implementar el módulo de pedidos del portal web con reservas, estados y 
+entregas.
+
+Dependencias: Prompt 3.4, Prompt 3.5, Prompt 5.1, Prompt 5.2, Prompt 4.5
+
+Requisitos específicos:
+1. orders.module.ts: imports TypeOrmModule for Order, OrderItem, 
+   OrderStatusHistory entities
+2. orders.controller.ts: POST /orders, GET /orders, GET /orders/:id, 
+    PUT /orders/:id/status, POST /orders/:id/cancel, GET /orders/:id/track, 
+    GET /orders/pending
+3. services/order.service.ts: createFromCart, findById, findByCustomer, 
+    updateStatus, cancel, getTrackingInfo
+4. services/order-item.service.ts: createItems, updateItem, 
+    calculateItemTotals
+5. services/order-reservation.service.ts: reserveStock, releaseReservation, 
+    consumeReservation, extendReservation
+6. services/order-delivery.service.ts: scheduleDelivery, assignDelivery, 
+    updateDeliveryStatus, confirmDelivery
+7. dto/: create-order, update-status, delivery, order-query
+8. events/OrderCreatedEvent, OrderDeliveredEvent
+9. repositories/: order.repository.ts, order-item.repository.ts
+
+Instrucciones de implementación:
+- Crear apps/api/src/orders/ con estructura completa
+- Implementar transición de estados: REQUESTED → CONFIRMED → PREPARING → 
+  READY → IN_TRANSIT → DELIVERED → COMPLETED
+- Cancelación solo en estado REQUESTED
+- Reservar inventario al crear pedido (expira en 24h)
+- Consumir reserva al cambiar a PREPARING
+- Notificar cliente en cada cambio de estado
+- Implementar tracking con geolocalización
+
+Entregable: Módulo Orders completo en apps/api/src/orders/
+
+
+--- PROMPT 5.8: CREDITS MODULE - CARTERA --------------------------------------
+
+Archivo objetivo: apps/api/src/credits/*.ts
+
+Contexto:
+Implementar el módulo de créditos y cartera con scoring, límites y aging.
+
+Dependencias: Prompt 3.4, Prompt 3.5, Prompt 4.5
+
+Requisitos específicos:
+1. credits.module.ts: imports TypeOrmModule for CreditAccount, 
+   CreditTransaction, CustomerPayment entities
+2. accounts.controller.ts: GET /accounts, GET /accounts/:id, 
+    PUT /accounts/:id/limit
+3. transactions.controller.ts: GET /transactions
+4. payments.controller.ts: GET /payments/pending, POST /payments/:id/verify
+5. aging.controller.ts: GET /aging
+6. services/credit-account.service.ts: createAccount, updateLimit, 
+    getAccountByCustomer, getAccountWithDetails, freezeAccount, unfreezeAccount
+7. services/credit-limit.service.ts: calculateSuggestedLimit, validateCredit, 
+    processCreditIncreaseRequest
+8. services/credit-transaction.service.ts: registerCharge, registerPayment, 
+    getTransactions, calculateInterest
+9. services/customer-payment.service.ts: registerPayment, verifyPayment, 
+    rejectPayment, getPendingPayments
+10. services/aging.service.ts: calculateAging, getAgingReport, 
+    generateCollectionLetters
+11. dto/: update-limit, register-payment, aging-query
+12. events/CreditLimitExceededEvent, PaymentVerifiedEvent
+13. repositories/: credit-account.repository.ts
+
+Instrucciones de implementación:
+- Crear apps/api/src/credits/ con estructura completa
+- Implementar scoring crediticio: historial 40%, antigüedad 20%, 
+  volumen 15%, utilización 15%, mora 10%
+- Validar límite disponible en ventas a crédito
+- Aging de cartera: current, 1-30, 31-60, 61-90, 90+ días
+- Calcular intereses de mora después de due_date + grace_days
+- Verificación manual de pagos registrados por clientes
+- Generar cartas de cobranza
+
+Entregable: Módulo Credits completo en apps/api/src/credits/
+
+
+--- PROMPT 5.9: HR MODULE - RECURSOS HUMANOS ----------------------------------
+
+Archivo objetivo: apps/api/src/hr/*.ts
+
+Contexto:
+Implementar el módulo de recursos humanos con empleados, contratos y nómina.
+
+Dependencias: Prompt 3.4, Prompt 3.5, Prompt 4.5
+
+Requisitos específicos:
+1. hr.module.ts: imports TypeOrmModule for Employee, Contract, 
+   PayrollRun, PayrollDetail entities
+2. employees.controller.ts: GET /employees, POST /employees, 
+    GET /employees/:id, PUT /employees/:id
+3. payroll.controller.ts: GET /payrolls, POST /payrolls, GET /payrolls/:id
+4. services/employee.service.ts: create, update, findById, findWithFilters, 
+    terminate, reactivate
+5. services/contract.service.ts: createContract, activeContract, 
+    endContract, calculateBenefits
+6. services/payroll.service.ts: runPayroll, calculateNetSalary, 
+    getPayrollById, approvePayroll
+7. dto/: create-employee, create-contract, run-payroll, payroll-response
+8. events/PayrollExecutedEvent
+9. repositories/: employee.repository.ts
+
+Instrucciones de implementación:
+- Crear apps/api/src/hr/ con estructura completa
+- Implementar cálculo de nómina: salario bruto - deducciones (salud 4%, 
+  pensión 4%) + bonificaciones
+- Generar PayrollRun mensual
+- Validar que nómina liquidada no se modifique
+- Crear payroll details por empleado
+- Generar asientos contables para nómina
+
+Entregable: Módulo HR completo en apps/api/src/hr/
+
+
+--- PROMPT 5.10: REPORTS MODULE ----------------------------------------------
+
+Archivo objetivo: apps/api/src/reports/*.ts
+
+Contexto:
+Implementar el módulo de reportes y dashboards ejecutivos.
+
+Dependencias: Prompt 3.4, Prompt 3.5, Prompt 4.5, Prompt 5.1, Prompt 5.2, 
+Prompt 5.3, Prompt 5.8
+
+Requisitos específicos:
+1. reports.module.ts: imports TypeOrmModule
+2. reports.controller.ts: GET /reports/sales, GET /reports/inventory, 
+    GET /reports/financial, GET /reports/dashboard
+3. services/sales-report.service.ts: dailySales, monthlySales, byProduct, 
+    byCashier, byPaymentMethod, comparison
+4. services/inventory-report.service.ts: stockValue, stockMovement, 
+    lowStock, expiringLots, wasteReport
+5. services/financial-report.service.ts: incomeStatement, cashFlow, 
+    accountsReceivable, accountsPayable
+6. services/dashboard.service.ts: kpis, charts, trends, alerts
+7. dto/report-query.dto.ts: dateRange, branchId, filters, groupBy
+8. Export formats: PDF, Excel, CSV support
+
+Instrucciones de implementación:
+- Crear apps/api/src/reports/ con estructura completa
+- Implementar filtros por rango de fechas, sucursal, categoría
+- Generar reportes con aggregations y GROUP BY
+- Implementar dashboard con KPIs en tiempo real
+- Agregar comparativas: día vs día anterior, semana vs semana anterior
+- Exportar a Excel con formatting
+- Generar PDF con template engine
+
+Entregable: Módulo Reports completo en apps/api/src/reports/
+
+
+--- PROMPT 5.11: INTEGRATIONS MODULE ------------------------------------------
+
+Archivo objetivo: apps/api/src/integrations/*.ts
+
+Contexto:
+Implementar el módulo de integraciones con hardware y servicios externos.
+
+Dependencias: Prompt 4.5, Prompt 5.3
+
+Requisitos específicos:
+1. integrations.module.ts: imports TypeOrmModule
+2. integrations.controller.ts: GET /integrations, GET /integrations/:id, 
+    PUT /integrations/:id
+3. services/printer.service.ts: printTicket, getPrinters, testPrinter
+4. services/barcode.service.ts: generateBarcode, validateBarcode, 
+    scanBarcode
+5. services/whatsapp.service.ts: sendMessage, sendDocument, getStatus
+6. services/sms.service.ts: sendSMS, getStatus
+7. services/balanza.service.ts: connectBalanza, getWeight, tara
+8. dto/integration-config.dto.ts: printer, whatsapp, balanza configs
+
+Instrucciones de implementación:
+- Crear apps/api/src/integrations/ con estructura completa
+- Implementar integración con impresoras térmicas (ESC/POS)
+- Implementar generación de códigos de barras
+- Implementar envío de WhatsApp (mock/placeholder)
+- Implementar envío de SMS (mock/placeholder)
+- Implementar conexión con balanza (mock/placeholder)
+- Configurar por sucursal
+
+Entregable: Módulo Integrations completo en apps/api/src/integrations/
+
+
+--- PROMPT 5.12: NOTIFICATIONS MODULE -----------------------------------------
+
+Archivo objetivo: apps/api/src/notifications/*.ts
+
+Contexto:
+Implementar el módulo de notificaciones por email, push y WhatsApp.
+
+Dependencias: Prompt 4.5, Prompt 5.3, Prompt 5.7
+
+Requisitos específicos:
+1. notifications.module.ts: imports TypeOrmModule
+2. notifications.controller.ts: GET /notifications, GET /notifications/:id, 
+    POST /notifications/send
+3. services/notification.service.ts: send, sendBulk, getNotifications, 
+    markAsRead
+4. services/email.service.ts: sendEmail, sendTemplateEmail, sendBulkEmail
+5. services/push.service.ts: sendPush, registerDevice
+6. dto/send-notification.dto.ts: recipient, channel, template, data
+7. templates/: email templates para: order-confirmation, payment-received, 
+    credit-warning, delivery-update, etc.
+8. notification-preferences.entity.ts: user preferences por canal
+
+Instrucciones de implementación:
+- Crear apps/api/src/notifications/ con estructura completa
+- Implementar templates de email con handlebars
+- Implementar cola de notificaciones
+- Soportar canales: email, push, WhatsApp
+- Implementar preferencias de usuario por canal
+- Programar notificaciones (scheduled)
+- Retry logic para fallidos
+
+Entregable: Módulo Notifications completo en apps/api/src/notifications/
+
+
+================================================================================
+                      FASE 6: CONFIGURACIÓN Y TESTS
+================================================================================
+
+--- PROMPT 6.1: DOCKER Y DOCKER COMPOSE ---------------------------------------
+
+Archivo objetivo: apps/api/Dockerfile, apps/api/docker-compose.yml
+
+Contexto:
+Implementar configuración Docker completa para deployment y desarrollo.
+
+Dependencias: Prompt 1.1, Prompt 1.2
+
+Requisitos específicos:
+1. Dockerfile: node:20-alpine, instalación de dependencias, build de producción
+2. Dockerfile.dev: node:20, hot reload con ts-node-dev
+3. docker-compose.yml: api service, postgres service, redis service, 
+   migration service
+4. .dockerignore: excluir node_modules, dist, .env, git
+5. docker-compose.override.yml: para desarrollo con volumes
+6. Entrypoint: run migrations antes de start
+
+Instrucciones de implementación:
+- Crear apps/api/Dockerfile multi-stage build
+- Crear apps/api/Dockerfile.dev con ts-node-dev
+- Crear apps/api/docker-compose.yml con servicios: api, postgres, redis
+- Crear apps/api/docker-compose.override.yml para desarrollo
+- Configurar healthchecks para cada servicio
+- Configurar networks y volumes
+- Documentar en comentarios los pasos de build
+
+Entregable: Docker configuration en apps/api/
+
+
+--- PROMPT 6.2: JEST CONFIGURACIÓN Y TESTS UTILS ------------------------------
+
+Archivo objetivo: apps/api/jest.config.js, apps/api/test/utils/*.ts
+
+Contexto:
+Implementar configuración de Jest y utilidades para testing.
+
+Dependencias: Prompt 2.1, Prompt 2.2, Prompt 4.1
+
+Requisitos específicos:
+1. jest.config.js: preset: 'ts-jest', testEnvironment: 'node', 
+   coverageDirectory: coverage, collectCoverageFrom, moduleNameMapper
+2. jest-e2e.config.js: para tests e2e
+3. test/utils/test-utils.ts: createTestingModule, mockRepository, 
+    mockService, generateMockData
+4. test/utils/mocks/: mockConfigService, mockRepository, mockEventEmitter
+5. test/utils/fixtures/: sample-tenant.json, sample-user.json, 
+    sample-product.json
+6. setup.ts: global test setup, mocks initialization
+7. test/fixtures/: helper functions para crear entidades de test
+
+Instrucciones de implementación:
+- Crear apps/api/jest.config.js con configuración completa
+- Crear apps/api/jest-e2e.config.js para e2e
+- Crear apps/api/test/utils/test-utils.ts con TestingModuleBuilder helpers
+- Crear mocks reutilizables para servicios y repositories
+- Crear fixtures de datos de prueba
+- Configurar global teardown
+- Agregar scripts de test en package.json
+
+Entregable: Jest configuration en apps/api/ y apps/api/test/utils/
+
+
+--- PROMPT 6.3: E2E TESTS BASE ------------------------------------------------
+
+Archivo objetivo: apps/api/test/*.e2e-spec.ts
+
+Contexto:
+Implementar tests end-to-end para endpoints críticos.
+
+Dependencias: Prompt 6.2, Prompt 4.1, Prompt 4.2
+
+Requisitos específicos:
+1. app.e2e-spec.ts: test de salud de la app, endpoints básicos
+2. auth.e2e-spec.ts: login, logout, refresh token, access denied
+3. tenants.e2e-spec.ts: CRUD tenants, permisos
+4. setup.ts: test database, seed, cleanup
+5. teardown.ts: cleanup después de tests
+6. Integración con TestDatabase para tests aislados
+
+Instrucciones de implementación:
+- Crear apps/api/test/app.e2e-spec.ts
+- Crear apps/api/test/auth.e2e-spec.ts
+- Crear apps/api/test/tenants.e2e-spec.ts
+- Crear apps/api/test/setup.ts con TestDatabase
+- Crear apps/api/test/teardown.ts
+- Usar supertest para HTTP testing
+- Implementar cleanup después de cada test
+
+Entregable: E2E tests en apps/api/test/
+
+
+--- PROMPT 6.4: SCRIPTS CI/CD -------------------------------------------------
+
+Archivo objetivo: scripts/*.sh, .github/workflows/*.yml
+
+Contexto:
+Implementar scripts de deployment y workflows de GitHub Actions.
+
+Dependencias: Prompt 6.1
+
+Requisitos específicos:
+1. scripts/build.sh: build de todos los paquetes y apps
+2. scripts/migrate.sh: ejecutar migrations de TypeORM
+3. scripts/seed.sh: ejecutar seeders de datos iniciales
+4. scripts/test.sh: ejecutar suite completa de tests
+5. scripts/lint.sh: ejecutar ESLint y Prettier
+6. .github/workflows/ci.yml: pipeline de CI con build, test, lint, security
+7. .github/workflows/cd.yml: pipeline de CD con build, deploy
+8. .github/workflows/danger.yml: automated code review
+
+Instrucciones de implementación:
+- Crear directorio scripts/ con scripts bash
+- Crear .github/workflows/ con workflows de GitHub Actions
+- Configurar CI con: install, lint, test, build
+- Configurar CD con: build, docker build, push, deploy
+- Agregar análisis de seguridad con Snyk o Sonar
+- Configurar notifications de Slack/Discord
+
+Entregable: Scripts y workflows en scripts/ y .github/
+
+
+--- PROMPT 6.5: DOCUMENTACIÓN -------------------------------------------------
+
+Archivo objetivo: docs/*.md, README.md
+
+Contexto:
+Implementar documentación completa del proyecto.
+
+Dependencias: Todos los prompts anteriores
+
+Requisitos específicos:
+1. README.md: overview, features, tech stack, quick start, links
+2. DEVELOPMENT.md: setup local, debugging, code style, commit conventions
+3. API.md: documentación de endpoints, ejemplos de request/response
+4. DEPLOYMENT.md: deployment en producción, environment variables, 
+    monitoring, backup, recovery
+5. ARCHITECTURE.md: este documento de diseño arquitectónico
+6. CONTRIBUTING.md: guidelines para contribuidores
+7. CHANGELOG.md: template de changelog
+8. LICENSE:许可证 MIT
+
+Instrucciones de implementación:
+- Crear docs/ con todos los markdown files
+- Crear README.md con información de proyecto
+- Crear DEVELOPMENT.md con guía de setup
+- Crear API.md con ejemplos de uso de API
+- Crear DEPLOYMENT.md con guía de producción
+- Crear ARCHITECTURE.md con este documento
+- Crear CONTRIBUTING.md con guidelines
+- Actualizar package.json con información de proyecto
+
+Entregable: Documentación en docs/, README.md
+
+
+================================================================================
+                              RESUMEN DE PROMPTS
+================================================================================
+
+FASE 1: INFRAESTRUCTURA BASE (3 prompts)
+├── 1.1 Configuración del Monorepo
+├── 1.2 Infraestructura NestJS Core
+└── 1.3 Base de Datos TypeORM
+
+FASE 2: PAQUETES COMPARTIDOS (4 prompts)
+├── 2.1 Shared - Tipos y Enums Base
+├── 2.2 Shared - Interfaces y Excepciones
+├── 2.3 Shared - Utilidades y Decoradores
+└── 2.4 API Contracts - OpenAPI Base
+
+FASE 3: TYPEORM CLIENT (5 prompts)
+├── 3.1 TypeORM Entities Base
+├── 3.2 TypeORM Entities SaaS
+├── 3.3 TypeORM Entities Catalog
+├── 3.4 TypeORM Entities Inventory y Transacciones
+└── 3.5 TypeORM Repositories
+
+FASE 4: MÓDULOS CORE SAAS (9 prompts)
+├── 4.1 Auth Module - JWT y Autorización
+├── 4.2 Tenants Module - CRUD Completo
+├── 4.3 Licensing Module - Licencias SaaS
+├── 4.4 Billing Module - Facturación SaaS
+├── 4.5 Common Guards e Interceptors
+├── 4.6 Common Decorators
+├── 4.7 Config Module
+├── 4.8 OpenAPI Setup
+└── 4.9 Health Check
+
+FASE 5: MÓDULOS CORE ERP (12 prompts)
+├── 5.1 Catalog Module - Productos
+├── 5.2 Inventory Module - Lotes y Movimientos
+├── 5.3 Sales Module - Ventas POS
+├── 5.4 Cash Module - Control de Caja
+├── 5.5 Accounting Module - Contabilidad
+├── 5.6 Purchases Module - Proveedores
+├── 5.7 Orders Module - Pedidos Portal
+├── 5.8 Credits Module - Cartera
+├── 5.9 HR Module - Recursos Humanos
+├── 5.10 Reports Module
+├── 5.11 Integrations Module
+└── 5.12 Notifications Module
+
+FASE 6: CONFIGURACIÓN Y TESTS (5 prompts)
+├── 6.1 Docker y Docker Compose
+├── 6.2 Jest Configuración y Tests Utils
+├── 6.3 E2E Tests Base
+├── 6.4 Scripts CI/CD
+└── 6.5 Documentación
+
+TOTAL: 50 PROMPTS
+
+================================================================================
+                            FIN DEL ARCHIVO
+================================================================================

@@ -7,9 +7,13 @@
     "scripts": {
         "build": "turbo run build",
         "dev": "turbo run dev",
+        "start": "turbo run start",
+        "start:prod": "turbo run start:prod",
         "test": "turbo run test",
         "test:e2e": "turbo run test:e2e",
         "lint": "turbo run lint",
+        "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+        "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
         "dev:admin": "pnpm --filter admin dev",
         "dev:portal": "pnpm --filter portal dev",
         "dev:api": "pnpm --filter api start:dev",
@@ -18,7 +22,8 @@
         "migration:generate": "pnpm --filter @qflow/database migration:generate",
         "migration:run": "pnpm --filter @qflow/database migration:run",
         "migration:revert": "pnpm --filter @qflow/database migration:revert",
-        "migration:show": "pnpm --filter @qflow/database migration:show"
+        "migration:show": "pnpm --filter @qflow/database migration:show",
+        "seed": "pnpm --filter @qflow/database seed"
     },
     "keywords": [
         "erp",
@@ -29,6 +34,11 @@
     "author": "QFlow Pro Team",
     "license": "UNLICENSED",
     "devDependencies": {
-        "turbo": "^2.7.4"
+        "@eslint/js": "^9.39.2",
+        "eslint": "^9.39.2",
+        "eslint-config-prettier": "^10.1.8",
+        "prettier": "^3.7.4",
+        "turbo": "^2.7.4",
+        "typescript-eslint": "^8.53.0"
     }
 }

@@ -6,6 +6,8 @@ import { DataSource } from 'typeorm';
 import { Server } from 'http';
 import { randomUUID } from 'crypto';
 
+import { LoginResponseBody, RegisterResponseBody } from './utils';
+
 /**
  * Sales Concurrency Tests
  *
@@ -34,16 +36,25 @@ describe('SalesService Concurrency Tests', () => {
   let app: INestApplication;
   let dataSource: DataSource;
   let httpServer: Server;
+  let accessToken: string;
+  let cashierId: string;
 
   // Use dynamic IDs to ensure isolation
   const testTenantId = randomUUID();
   const testBranchId = randomUUID();
   const testVariantId = randomUUID();
-  const testCashierId = randomUUID();
+  // const testCashierId = randomUUID(); // Replaced by cashierId from auth
   const testProductId = randomUUID();
   const testRoleId = randomUUID();
 
   const uniqueSuffix = Date.now();
+  const testUser = {
+    email: `conc-sales-${uniqueSuffix}@test.com`,
+    password: 'SecureSalesPass123!',
+    fullName: 'Concurrency User',
+    tenantId: testTenantId,
+    roleId: testRoleId,
+  };
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -57,6 +68,23 @@ describe('SalesService Concurrency Tests', () => {
     httpServer = app.getHttpServer() as Server;
 
     await seedDatabase();
+
+    // Register and login to get token
+    const regRes = await request(httpServer)
+      .post('/auth/register')
+      .send(testUser);
+
+    if (regRes.status !== 201) {
+      console.error('Register failed:', regRes.body);
+    }
+    const regBody = regRes.body as RegisterResponseBody;
+    cashierId = regBody.id;
+
+    const loginRes = await request(httpServer)
+      .post('/auth/login')
+      .send({ email: testUser.email, password: testUser.password });
+    const loginBody = loginRes.body as LoginResponseBody;
+    accessToken = loginBody.accessToken;
   });
 
   async function seedDatabase() {
@@ -81,12 +109,7 @@ describe('SalesService Concurrency Tests', () => {
       [testRoleId, testTenantId],
     );
 
-    // 4. User (Cashier)
-    await dataSource.query(
-      `INSERT INTO users (id, tenant_id, email, password_hash, full_name, role_id, branch_ids, is_active)
-                 VALUES ($1, $2, 'cashier-${uniqueSuffix}@test.com', 'hash', 'Test Cashier', $3, $4, true)`,
-      [testCashierId, testTenantId, testRoleId, JSON.stringify([testBranchId])],
-    );
+    // 4. User (Cashier) - Register used in beforeAll instead
 
     // 5. Unit of Measure
     const testUnitId = randomUUID();
@@ -186,9 +209,10 @@ describe('SalesService Concurrency Tests', () => {
     return request(httpServer)
       .post('/sales')
       .set('x-tenant-id', testTenantId)
+      .set('Authorization', 'Bearer ' + accessToken)
       .send({
         branchId: testBranchId,
-        cashierId: testCashierId,
+        cashierId: cashierId,
         paymentMethod: 'cash',
         items: [{ variantId, quantity, unitPrice: 100 }],
       });
@@ -276,9 +300,10 @@ describe('SalesService Concurrency Tests', () => {
       const response = await request(httpServer)
         .post('/sales')
         .set('x-tenant-id', testTenantId)
+        .set('Authorization', 'Bearer ' + accessToken)
         .send({
           branchId: testBranchId,
-          cashierId: testCashierId,
+          cashierId: cashierId,
           paymentMethod: 'cash',
           items: [
             { variantId: testVariantId, quantity: 3, unitPrice: 100 },
@@ -302,9 +327,10 @@ describe('SalesService Concurrency Tests', () => {
       await request(httpServer)
         .post('/sales')
         .set('x-tenant-id', testTenantId)
+        .set('Authorization', 'Bearer ' + accessToken)
         .send({
           branchId: testBranchId,
-          cashierId: testCashierId,
+          cashierId: cashierId,
           paymentMethod: 'cash',
           items: [
             { variantId: testVariantId, quantity: 999999, unitPrice: 100 },
@@ -328,9 +354,10 @@ describe('SalesService Concurrency Tests', () => {
       const response = await request(httpServer)
         .post('/sales')
         .set('x-tenant-id', testTenantId)
+        .set('Authorization', 'Bearer ' + accessToken)
         .send({
           branchId: testBranchId,
-          cashierId: testCashierId,
+          cashierId: cashierId,
           paymentMethod: 'cash',
           items: [{ variantId: testVariantId, quantity: 3, unitPrice: 100 }],
         });

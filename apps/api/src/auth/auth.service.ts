@@ -12,11 +12,16 @@ import { User, Role } from '@qflow/database';
 import * as bcrypt from 'bcrypt';
 import { authenticator } from 'otplib';
 import * as QRCode from 'qrcode';
+import * as crypto from 'crypto';
 import {
   RegisterDto,
   LoginDto,
   LoginResponse,
   MfaSetupResponse,
+  RefreshTokenDto,
+  RefreshResponse,
+  ForgotPasswordDto,
+  ResetPasswordDto,
 } from './dto/auth.dto';
 
 export interface JwtPayload {
@@ -37,7 +42,7 @@ export class AuthService {
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   async register(dto: RegisterDto): Promise<{ id: string; email: string }> {
     const existingUser = await this.userRepository.findOne({
@@ -76,6 +81,22 @@ export class AuthService {
     await this.userRepository.save(user);
 
     return { id: user.id, email: user.email };
+  }
+
+
+  async getProfile(userId: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['role'], // Include role details if needed
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Remove sensitive data
+    const { passwordHash, twoFactorSecret, sessionToken, ...safeUser } = user;
+    return safeUser as User;
   }
 
   async validateUser(email: string, password: string): Promise<User | null> {
@@ -140,6 +161,7 @@ export class AuthService {
         };
       }
 
+      authenticator.options = { window: 1 };
       const isValidMfa = authenticator.verify({
         token: dto.mfaCode,
         secret: user.twoFactorSecret || '',
@@ -155,23 +177,126 @@ export class AuthService {
       tenantId: user.tenantId,
     };
 
-    const accessToken = this.jwtService.sign(payload);
+    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const refreshTokenHex = crypto.randomBytes(32).toString('hex');
+    const refreshTokenHash = await bcrypt.hash(refreshTokenHex, 10);
 
     await this.userRepository.update(user.id, {
-      sessionToken: accessToken,
+      sessionToken: refreshTokenHash, // Store hash of refresh token (hex only)
       sessionExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     });
 
     return {
       accessToken,
+      refreshToken: `${user.id}.${refreshTokenHex}`, // Return composite to client
       requiresMfa: false,
       user: {
         id: user.id,
         email: user.email,
         fullName: user.fullName,
         tenantId: user.tenantId,
+        roleId: user.roleId, // Returning roleId is useful
       },
     };
+  }
+
+  async refreshToken(dto: RefreshTokenDto): Promise<RefreshResponse> {
+    if (!dto.refreshToken) {
+      throw new UnauthorizedException('Refresh token requerido');
+    }
+
+    const [userId, tokenHex] = dto.refreshToken.split('.');
+
+    if (!userId || !tokenHex) {
+      throw new UnauthorizedException('Formato de token inválido');
+    }
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user || !user.sessionToken || !user.sessionExpiresAt) {
+      throw new UnauthorizedException('Sesión inválida');
+    }
+
+    if (new Date() > user.sessionExpiresAt) {
+      throw new UnauthorizedException('Sesión expirada');
+    }
+
+    // Verify the HEX part against the stored hash
+    const isValid = await bcrypt.compare(tokenHex, user.sessionToken);
+    if (!isValid) {
+      // Security: Reuse detection could be here
+      throw new UnauthorizedException('Token inválido');
+    }
+
+    // Rotate tokens
+    const newPayload: JwtPayload = {
+      sub: user.id,
+      tenantId: user.tenantId,
+    };
+
+    const newAccessToken = this.jwtService.sign(newPayload, { expiresIn: '15m' });
+    const newRefreshTokenHex = crypto.randomBytes(32).toString('hex');
+    const newRefreshTokenHash = await bcrypt.hash(newRefreshTokenHex, 10);
+
+    await this.userRepository.update(user.id, {
+      sessionToken: newRefreshTokenHash, // Store hash of NEW hex
+      sessionExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    });
+
+    return {
+      accessToken: newAccessToken,
+      refreshToken: `${user.id}.${newRefreshTokenHex}`, // Return new composite
+    };
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { email: dto.email } });
+    if (!user) {
+      return; // Generic response for security
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = await bcrypt.hash(token, 10);
+    const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
+
+    await this.userRepository.update(user.id, {
+      passwordResetToken: tokenHash,
+      passwordResetExpiresAt: expiresAt,
+    });
+
+    // Mock Email Service
+    console.log(`[Email Mock] Password reset link for ${user.email}: https://app.qflow.com/reset-password?token=${user.id}.${token}`);
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<void> {
+    if (!dto.token) {
+      throw new BadRequestException('Token requerido');
+    }
+
+    const [userId, token] = dto.token.split('.');
+    if (!userId || !token) throw new BadRequestException('Token inválido');
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user || !user.passwordResetToken || !user.passwordResetExpiresAt) {
+      throw new BadRequestException('Solicitud inválida');
+    }
+
+    if (new Date() > user.passwordResetExpiresAt) {
+      throw new BadRequestException('Token expirado');
+    }
+
+    const isValid = await bcrypt.compare(dto.token, user.passwordResetToken);
+    if (!isValid) throw new BadRequestException('Token inválido');
+
+    const hash = await bcrypt.hash(dto.newPassword, 12);
+
+    await this.userRepository.update(user.id, {
+      passwordHash: hash,
+      passwordResetToken: null as any,
+      passwordResetExpiresAt: null as any,
+      // Invalidate current sessions
+      sessionToken: null as any,
+      sessionExpiresAt: null as any,
+    });
   }
 
   async logout(userId: string): Promise<{ success: boolean }> {

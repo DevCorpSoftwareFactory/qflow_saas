@@ -11,29 +11,35 @@ import { IsString, IsOptional, IsNumber, IsUrl, MaxLength, Min, IsIn, IsUUID } f
 import { CashSession } from './cash-session.entity';
 import { User } from '../organization/user.entity';
 
+// Type aliases for movement types - matching init.sql varchar values
 export enum CashMovementType {
-    CASH_IN = 'cash_in',
-    CASH_OUT = 'cash_out',
-    CASH_TRANSFER = 'cash_transfer',
+    INCOME = 'income',
+    EXPENSE = 'expense',
+    WITHDRAWAL = 'withdrawal',
+    TRANSFER_IN = 'transfer_in',
+    TRANSFER_OUT = 'transfer_out',
 }
 
 export enum CashMovementCategory {
-    // Ingresos
+    // init.sql categories (varchar(50))
+    OPERATIONAL_EXPENSE = 'operational_expense',
+    SUPPLIER_PAYMENT = 'supplier_payment',
+    OWNER_WITHDRAWAL = 'owner_withdrawal',
+    INITIAL_FUND = 'initial_fund',
+    SALES_CASH = 'sales_cash',
+    EXPENSE = 'expense',
+    WITHDRAWAL = 'withdrawal',
+    OTHER = 'other',
     CREDIT_GRANTED = 'credit_granted',
     CREDIT_PAYMENT = 'credit_payment',
     ONLINE_PAYMENT_RECEIVED = 'online_payment_received',
-    SALES_CASH = 'sales_cash',
-
-    // Egresos
-    EXPENSE = 'expense',
     PURCHASE = 'purchase',
-    WITHDRAWAL = 'withdrawal',
     TRANSFER_TO_BANK = 'transfer_to_bank',
-    OTHER = 'other',
 }
 
 /**
  * Registro de ingresos y egresos de dinero durante una sesión de caja.
+ * Aligned with init.sql schema.
  * @table cash_movements
  */
 @Entity('cash_movements')
@@ -60,14 +66,15 @@ export class CashMovement {
     @JoinColumn({ name: 'cash_session_id' })
     cashSession?: CashSession;
 
-    /** Movement type: income, expense, withdrawal, transfer_in, transfer_out */
+    /** Movement type: income, expense, withdrawal, transfer_in, transfer_out (varchar in init.sql) */
     @Column({
         name: 'movement_type',
-        type: 'enum',
-        enum: CashMovementType
+        type: 'varchar',
+        length: 20,
     })
-    @IsIn(Object.values(CashMovementType))
-    movementType: CashMovementType;
+    @IsString()
+    @IsIn(['income', 'expense', 'withdrawal', 'transfer_in', 'transfer_out'])
+    movementType: string;
 
     /** Amount */
     @Column({ type: 'decimal', precision: 15, scale: 2 })
@@ -75,15 +82,15 @@ export class CashMovement {
     @Min(0)
     amount: number;
 
-    /** Category */
+    /** Category (varchar in init.sql) */
     @Column({
-        type: 'enum',
-        enum: CashMovementCategory,
+        type: 'varchar',
+        length: 50,
         nullable: true
     })
     @IsOptional()
-    @IsIn(Object.values(CashMovementCategory))
-    category?: CashMovementCategory;
+    @IsString()
+    category?: string;
 
     @Column({ type: 'varchar', length: 200 })
     @IsString()

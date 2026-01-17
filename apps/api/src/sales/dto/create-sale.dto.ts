@@ -20,8 +20,8 @@ export class SaleItemDto {
   @IsOptional()
   lotId?: string;
 
-  @IsInt()
-  @Min(1)
+  @IsNumber()
+  @Min(0.0001)
   quantity: number;
 
   @IsNumber()
@@ -64,4 +64,12 @@ export class CreateSaleDto {
   @IsOptional()
   @Min(0)
   discountAmount?: number;
+
+  @IsOptional()
+  @IsString()
+  saleDate?: string;
+
+  @IsOptional()
+  @IsString()
+  saleNumber?: string;
 }

@@ -12,14 +12,7 @@ import {
   InventoryMovement,
   CashMovement,
   ProductVariant,
-  SaleStatus,
-  SaleType,
-  MovementType,
-  CashMovementType,
-  CashMovementCategory,
-  LotStatus,
   SalePayment,
-  PaymentMethod,
 } from '@qflow/database';
 import { StockService } from '../inventory/stock/stock.service';
 import { CreateSaleDto, SaleItemDto } from './dto';
@@ -31,7 +24,7 @@ export class SalesService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly stockService: StockService,
-  ) {}
+  ) { }
 
   /**
    * Register a sale with full ACID transaction guarantees.
@@ -52,18 +45,19 @@ export class SalesService {
         // Step 3: Create Sale header
         const sale = manager.create(Sale, {
           tenantId,
-          saleNumber: `SALE-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          saleNumber:
+            dto.saleNumber ||
+            `SALE-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           branchId: dto.branchId,
           customerId: dto.customerId,
           cashierId: dto.cashierId,
-          cashSessionId: dto.cashSessionId,
           subtotal,
           taxAmount,
           discountAmount: dto.discountAmount || 0,
           totalAmount,
-          status: SaleStatus.COMPLETED,
-          saleType: SaleType.RETAIL,
-          saleDate: new Date(),
+          status: 'completed',
+          saleType: 'retail',
+          saleDate: dto.saleDate ? new Date(dto.saleDate) : new Date(),
         });
         await manager.save(sale);
         this.logger.log(`Sale header created: ${sale.id}`);
@@ -160,7 +154,7 @@ export class SalesService {
       where: {
         variantId: item.variantId,
         branchId,
-        status: LotStatus.ACTIVE,
+        status: 'active',
       },
       lock: { mode: 'pessimistic_write' },
       order: { expiryDate: 'ASC' }, // FIFO by expiry
@@ -202,7 +196,7 @@ export class SalesService {
       branchId,
       variantId: item.variantId,
       lotId: lot.id,
-      movementType: MovementType.SALE,
+      movementType: 'sale',
       quantity: -item.quantity, // Negative for outbound
       referenceType: 'sale',
       referenceId: sale.id,
@@ -229,8 +223,8 @@ export class SalesService {
       tenantId,
       branchId: dto.branchId, // Pass branchId from DTO
       cashSessionId: dto.cashSessionId,
-      movementType: CashMovementType.CASH_IN,
-      category: CashMovementCategory.SALES_CASH,
+      movementType: 'income',
+      category: 'sales_cash',
       amount: sale.totalAmount,
       concept: `Venta ${sale.saleNumber || sale.id}`,
       referenceType: 'sale',
@@ -242,7 +236,7 @@ export class SalesService {
     const payment = manager.create(SalePayment, {
       tenantId,
       saleId: sale.id,
-      paymentMethod: dto.paymentMethod || PaymentMethod.CASH,
+      paymentMethod: dto.paymentMethod || 'cash',
       amount: sale.totalAmount,
       reference: 'Cash payment',
     });

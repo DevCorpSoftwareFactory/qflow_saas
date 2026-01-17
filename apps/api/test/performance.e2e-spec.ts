@@ -77,8 +77,8 @@ describe('Performance Tests', () => {
           ),
       );
 
-      const elapsed = Date.now() - start;
-      console.log(`Burst completed in ${elapsed}ms`);
+      // Log removed for cleaner test output
+      // const elapsed = Date.now() - start;
 
       // Lower threshold: we just want to verify the server doesn't crash under load
       // 401 responses are expected since the user doesn't exist

@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Turbo
+.turbo/
+
+# Lock files
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Flutter (POS app)
+apps/pos/
+
+# Generated files
+*.tsbuildinfo
+*.d.ts.map
+
+# Misc
+.env*
+!.env.example

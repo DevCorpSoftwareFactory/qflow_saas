@@ -1,0 +1,43 @@
+# =============================================================================
+# QFlow Pro API - Development Dockerfile
+# =============================================================================
+# Optimized for hot-reload development with pnpm
+# =============================================================================
+
+FROM node:18-alpine
+
+# Install pnpm globally
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN npm install -g pnpm@9.15.4
+
+# Install development tools
+RUN apk add --no-cache wget
+
+WORKDIR /app
+
+# Copy all workspace configuration first
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY apps/api/package.json ./apps/api/
+COPY packages/database/package.json ./packages/database/
+
+# Install all dependencies (including devDependencies)
+RUN pnpm install --frozen-lockfile
+
+# Copy source code
+COPY apps/api ./apps/api
+COPY packages/database ./packages/database
+
+# Build database package (required for API)
+RUN pnpm turbo run build --filter=@qflow/database
+
+# Change to API directory
+WORKDIR /app/apps/api
+
+# Ensure API has access to all dependencies
+RUN pnpm install
+
+EXPOSE 3000 9229
+
+# Development command with watch mode
+CMD ["pnpm", "run", "start:dev"]
