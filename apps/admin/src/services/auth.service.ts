@@ -82,6 +82,22 @@ export class AuthService {
       logger.logApiError(0, '/auth/logout', error);
     }
   }
+
+  async refreshToken(): Promise<{ accessToken: string; refreshToken: string }> {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+    logger.logApiRequest('POST', '/auth/refresh');
+    try {
+      const { data } = await api.post<{ accessToken: string; refreshToken: string }>('/auth/refresh', { refreshToken });
+      logger.logApiResponse(200, '/auth/refresh', data);
+      return data;
+    } catch (error) {
+      logger.logApiError(0, '/auth/refresh', error);
+      throw error;
+    }
+  }
 }
 
 export const authService = AuthService.getInstance();

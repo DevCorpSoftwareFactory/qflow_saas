@@ -19,7 +19,6 @@ export class SettingsService {
   async getCompanySettings(tenantId: string) {
     const tenant = await this.getTenant(tenantId);
 
-    // Combining entity fields to DTO shape
     return {
       name: tenant.companyName,
       nit: tenant.taxId,
@@ -31,15 +30,25 @@ export class SettingsService {
       primaryColor: tenant.primaryColor,
       currency: tenant.currency || 'COP',
       timezone: tenant.timezone || 'America/Bogota',
-      dateFormat: 'DD/MM/YYYY', // Default, not yet in entity
+      dateFormat: 'DD/MM/YYYY',
+      language: tenant.language || 'es',
     };
   }
 
   async updateCompanySettings(tenantId: string, dto: UpdateCompanyDto) {
     const tenant = await this.getTenant(tenantId);
 
-    // Auto-map fields
-    Object.assign(tenant, dto);
+    tenant.companyName = dto.name;
+    tenant.taxId = dto.nit;
+    if (dto.address !== undefined) tenant.address = dto.address;
+    if (dto.phone !== undefined) tenant.phone = dto.phone;
+    if (dto.email !== undefined) tenant.email = dto.email;
+    if (dto.website !== undefined) tenant.website = dto.website;
+    if (dto.logoUrl !== undefined) tenant.logoUrl = dto.logoUrl;
+    if (dto.primaryColor !== undefined) tenant.primaryColor = dto.primaryColor;
+    if (dto.currency !== undefined) tenant.currency = dto.currency;
+    if (dto.timezone !== undefined) tenant.timezone = dto.timezone;
+    if (dto.language !== undefined) tenant.language = dto.language;
 
     await this.tenantRepository.save(tenant);
     return this.getCompanySettings(tenantId);

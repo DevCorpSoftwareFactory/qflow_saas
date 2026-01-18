@@ -52,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
+      localStorage.removeItem('tenantId');
       setUser(null);
       cacheService.remove('user:profile');
       logger.info('User logged out');
@@ -102,9 +103,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (refreshToken) {
         localStorage.setItem('refreshToken', refreshToken);
       }
+      localStorage.setItem('tenantId', userData.tenantId);
       setUser(userData);
       cacheService.set('user:profile', userData);
-      logger.info('User logged in successfully', { userId: userData.id, email: userData.email });
+      logger.info('User logged in successfully', {
+        userId: userData.id,
+        email: userData.email,
+        tenantId: userData.tenantId,
+      });
       router.push('/');
       return true;
     } catch (err) {
