@@ -249,8 +249,13 @@ export class AuthService {
         id: user.id,
         email: user.email,
         fullName: user.fullName,
+        phone: user.phone,
+        avatarUrl: user.avatarUrl,
         tenantId: user.tenantId,
-        roleId: user.roleId, // Returning roleId is useful
+        roleId: user.roleId,
+        branchIds: user.branchIds || [],
+        language: user.language,
+        timezone: user.timezone,
       },
     };
   }
@@ -352,20 +357,17 @@ export class AuthService {
 
     await this.userRepository.update(user.id, {
       passwordHash: hash,
-      passwordResetToken: null as any,
-      passwordResetExpiresAt: null as any,
-      // Invalidate current sessions
-      sessionToken: null as any,
-      sessionExpiresAt: null as any,
+      passwordResetToken: undefined,
+      passwordResetExpiresAt: undefined,
+      sessionToken: undefined,
+      sessionExpiresAt: undefined,
     });
   }
 
   async logout(userId: string): Promise<{ success: boolean }> {
     await this.userRepository.update(userId, {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      sessionToken: null as any,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      sessionExpiresAt: null as any,
+      sessionToken: undefined,
+      sessionExpiresAt: undefined,
     });
     return { success: true };
   }

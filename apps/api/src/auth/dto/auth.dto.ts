@@ -25,7 +25,7 @@ export class RegisterDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  @Transform(({ value }) => value?.replace(/<\/?[^>]+(>|$)/g, ''))
+  @Transform(({ value }) => String(value ?? '').replace(/<\/?[^>]+(>|$)/g, ''))
   fullName: string;
 
   @IsOptional()
@@ -70,8 +70,13 @@ export interface LoginResponse {
     id: string;
     email: string;
     fullName: string;
+    phone?: string;
+    avatarUrl?: string;
     tenantId: string;
     roleId?: string;
+    branchIds?: string[];
+    language?: string;
+    timezone?: string;
   };
 }
 
