@@ -8,10 +8,10 @@ import { JwtUser } from '../auth/interfaces/jwt-user.interface';
 @Controller('sync')
 @UseGuards(JwtAuthGuard)
 export class SyncController {
-    constructor(private readonly syncService: SyncService) { }
+  constructor(private readonly syncService: SyncService) {}
 
-    @Post('push')
-    pushBatch(@CurrentUser() user: JwtUser, @Body() dto: SyncPushDto) {
-        return this.syncService.pushBatch(dto, user.tenantId);
-    }
+  @Post('push')
+  pushBatch(@CurrentUser() user: JwtUser, @Body() dto: SyncPushDto) {
+    return this.syncService.pushBatch(dto, user.tenantId);
+  }
 }

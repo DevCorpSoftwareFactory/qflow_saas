@@ -1,14 +1,25 @@
-export interface User {
+import { UserResponseDto } from '@qflow/shared';
+
+export type User = UserResponseDto;
+
+export interface Role {
     id: string;
-    email: string;
-    firstName?: string;
-    lastName?: string;
-    role: string;
-    tenantId: string;
+    name: string;
+    description?: string;
+    permissions: Record<string, Record<string, boolean>>;
+    isSystemRole: boolean;
+    isActive: boolean;
 }
 
 export interface AuthResponse {
-    user: User;
     accessToken: string;
-    refreshToken: string;
+    refreshToken?: string;
+    requiresMfa?: boolean;
+    user: UserResponseDto;
+}
+
+export interface AuthErrorResponse {
+    message: string;
+    error: string;
+    statusCode: number;
 }

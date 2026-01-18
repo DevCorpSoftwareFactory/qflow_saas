@@ -9,7 +9,6 @@ import {
   Get,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { AuthService } from './auth.service';
 import {
   RegisterDto,
@@ -22,14 +21,11 @@ import {
   ResetPasswordDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-
-interface AuthenticatedRequest extends Request {
-  user?: { userId: string; tenantId: string };
-}
+import { AuthenticatedRequest } from '../common/types';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   /**
    * Register a new user.
@@ -119,9 +115,7 @@ export class AuthController {
    */
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refresh(
-    @Body() dto: RefreshTokenDto,
-  ): Promise<RefreshResponse> {
+  async refresh(@Body() dto: RefreshTokenDto): Promise<RefreshResponse> {
     return this.authService.refreshToken(dto);
   }
 

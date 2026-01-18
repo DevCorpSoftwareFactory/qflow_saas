@@ -8,13 +8,13 @@ import { CreateCashMovementDto } from '@qflow/shared';
 @Controller('cash-movements')
 @UseGuards(JwtAuthGuard)
 export class CashMovementsController {
-    constructor(private readonly movementsService: CashMovementsService) { }
+  constructor(private readonly movementsService: CashMovementsService) {}
 
-    @Post()
-    async create(
-        @CurrentUser() user: JwtUser,
-        @Body() dto: CreateCashMovementDto,
-    ) {
-        return this.movementsService.create(user.tenantId, user.userId, dto);
-    }
+  @Post()
+  async create(
+    @CurrentUser() user: JwtUser,
+    @Body() dto: CreateCashMovementDto,
+  ) {
+    return this.movementsService.create(user.tenantId, user.userId, dto);
+  }
 }

@@ -37,11 +37,28 @@ export class User extends TenantBaseEntity {
     @MaxLength(200)
     fullName: string;
 
-    /** Contact phone */
     @Column({ type: 'varchar', length: 20, nullable: true })
     @IsOptional()
     @IsString()
     phone?: string;
+
+    /** Avatar URL */
+    @Column({ name: 'avatar_url', type: 'text', nullable: true })
+    @IsOptional()
+    @IsString()
+    avatarUrl?: string;
+
+    /** Preferred language */
+    @Column({ type: 'varchar', length: 10, default: 'es' })
+    @IsOptional()
+    @IsString()
+    language: string;
+
+    /** Preferred timezone */
+    @Column({ type: 'varchar', length: 50, default: 'America/Bogota' })
+    @IsOptional()
+    @IsString()
+    timezone: string;
 
     /** 4-6 digit PIN for quick POS access */
     @Column({ name: 'pin_security', type: 'varchar', length: 6, nullable: true })

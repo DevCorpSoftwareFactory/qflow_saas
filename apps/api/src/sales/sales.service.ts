@@ -24,7 +24,7 @@ export class SalesService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly stockService: StockService,
-  ) { }
+  ) {}
 
   /**
    * Register a sale with full ACID transaction guarantees.

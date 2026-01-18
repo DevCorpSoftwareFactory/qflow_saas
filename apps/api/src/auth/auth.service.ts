@@ -23,6 +23,8 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
 } from './dto/auth.dto';
+import { UserResponseDto } from '@qflow/shared';
+import { Logger } from 'nestjs-pino';
 
 export interface JwtPayload {
   sub: string; // user id
@@ -42,9 +44,16 @@ export class AuthService {
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
     private readonly jwtService: JwtService,
-  ) { }
+    private readonly logger: Logger,
+  ) {}
 
   async register(dto: RegisterDto): Promise<{ id: string; email: string }> {
+    this.logger.debug({
+      msg: 'register: INPUT',
+      email: dto.email,
+      tenantId: dto.tenantId,
+    });
+
     const existingUser = await this.userRepository.findOne({
       where: { email: dto.email, tenantId: dto.tenantId },
     });
@@ -53,7 +62,6 @@ export class AuthService {
       throw new ConflictException('El email ya está registrado');
     }
 
-    // Validate that roleId exists
     const role = await this.roleRepository.findOne({
       where: { id: dto.roleId },
     });
@@ -80,23 +88,53 @@ export class AuthService {
 
     await this.userRepository.save(user);
 
+    this.logger.debug({
+      msg: 'register: OUTPUT',
+      userId: user.id,
+      email: user.email,
+    });
+
     return { id: user.id, email: user.email };
   }
 
+  async getProfile(userId: string): Promise<UserResponseDto> {
+    this.logger.debug({ msg: 'getProfile: INPUT', userId });
 
-  async getProfile(userId: string): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      relations: ['role'], // Include role details if needed
+      relations: ['role'],
     });
 
     if (!user) {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    // Remove sensitive data
-    const { passwordHash, twoFactorSecret, sessionToken, ...safeUser } = user;
-    return safeUser as User;
+    const response = this.mapToResponseDto(user);
+    this.logger.debug({ msg: 'getProfile: OUTPUT', userId, response });
+
+    return response;
+  }
+
+  private mapToResponseDto(user: User): UserResponseDto {
+    return {
+      id: user.id,
+      tenantId: user.tenantId,
+      email: user.email,
+      fullName: user.fullName,
+      phone: user.phone,
+      roleId: user.roleId,
+      roleName: user.role?.name,
+      branchIds: user.branchIds || [],
+      isActive: user.isActive,
+      isBlocked: user.isBlocked,
+      twoFactorEnabled: user.twoFactorEnabled,
+      lastLoginAt: user.lastLoginAt?.toISOString() || undefined,
+      avatarUrl: user.avatarUrl,
+      language: user.language,
+      timezone: user.timezone,
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
+    };
   }
 
   async validateUser(email: string, password: string): Promise<User | null> {
@@ -141,14 +179,22 @@ export class AuthService {
   }
 
   async login(dto: LoginDto): Promise<LoginResponse> {
+    this.logger.debug({ msg: 'login: INPUT', email: dto.email });
+
     const user = await this.validateUser(dto.email, dto.password);
 
     if (!user) {
+      this.logger.warn({ msg: 'login: INVALID_CREDENTIALS', email: dto.email });
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
     if (user.twoFactorEnabled) {
       if (!dto.mfaCode) {
+        this.logger.debug({
+          msg: 'login: MFA_REQUIRED',
+          userId: user.id,
+          email: user.email,
+        });
         return {
           accessToken: '',
           requiresMfa: true,
@@ -168,6 +214,7 @@ export class AuthService {
       });
 
       if (!isValidMfa) {
+        this.logger.warn({ msg: 'login: INVALID_MFA_CODE', userId: user.id });
         throw new UnauthorizedException('Código MFA inválido');
       }
     }
@@ -184,6 +231,14 @@ export class AuthService {
     await this.userRepository.update(user.id, {
       sessionToken: refreshTokenHash, // Store hash of refresh token (hex only)
       sessionExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    });
+
+    this.logger.debug({
+      msg: 'login: SUCCESS',
+      userId: user.id,
+      email: user.email,
+      tenantId: user.tenantId,
+      reqId: null,
     });
 
     return {
@@ -233,7 +288,9 @@ export class AuthService {
       tenantId: user.tenantId,
     };
 
-    const newAccessToken = this.jwtService.sign(newPayload, { expiresIn: '15m' });
+    const newAccessToken = this.jwtService.sign(newPayload, {
+      expiresIn: '15m',
+    });
     const newRefreshTokenHex = crypto.randomBytes(32).toString('hex');
     const newRefreshTokenHash = await bcrypt.hash(newRefreshTokenHex, 10);
 
@@ -249,7 +306,9 @@ export class AuthService {
   }
 
   async forgotPassword(dto: ForgotPasswordDto): Promise<void> {
-    const user = await this.userRepository.findOne({ where: { email: dto.email } });
+    const user = await this.userRepository.findOne({
+      where: { email: dto.email },
+    });
     if (!user) {
       return; // Generic response for security
     }
@@ -264,7 +323,9 @@ export class AuthService {
     });
 
     // Mock Email Service
-    console.log(`[Email Mock] Password reset link for ${user.email}: https://app.qflow.com/reset-password?token=${user.id}.${token}`);
+    console.log(
+      `[Email Mock] Password reset link for ${user.email}: https://app.qflow.com/reset-password?token=${user.id}.${token}`,
+    );
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<void> {

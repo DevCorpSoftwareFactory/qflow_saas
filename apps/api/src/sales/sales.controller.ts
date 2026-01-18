@@ -15,7 +15,7 @@ import { CreateSaleDto, SaleResponseDto } from './dto';
 @Controller('sales')
 @UseGuards(JwtAuthGuard)
 export class SalesController {
-  constructor(private readonly salesService: SalesService) { }
+  constructor(private readonly salesService: SalesService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)

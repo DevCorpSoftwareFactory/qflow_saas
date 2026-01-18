@@ -10,11 +10,11 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 const baseConfig: DataSourceOptions = {
     type: 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432', 10),
-    username: process.env.DB_USERNAME || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
-    database: process.env.DB_NAME || 'qflow_pro',
+    host: process.env.DATABASE_HOST || process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DATABASE_PORT || process.env.DB_PORT || '5432', 10),
+    username: process.env.DATABASE_USER || process.env.DB_USERNAME || 'postgres',
+    password: process.env.DATABASE_PASSWORD || process.env.DB_PASSWORD || 'postgres',
+    database: process.env.DATABASE_NAME || process.env.DB_NAME || 'qflow_pro',
 
     // Connection pool
     poolSize: parseInt(process.env.DB_POOL_SIZE || '20', 10),

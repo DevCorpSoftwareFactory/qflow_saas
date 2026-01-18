@@ -28,4 +28,4 @@ import { InventoryModule } from '../inventory/inventory.module';
   controllers: [SalesController],
   exports: [SalesService],
 })
-export class SalesModule { }
+export class SalesModule {}

@@ -11,4 +11,4 @@ import { SalesModule } from '../sales/sales.module';
   controllers: [SyncController],
   providers: [SyncService],
 })
-export class SyncModule { }
+export class SyncModule {}

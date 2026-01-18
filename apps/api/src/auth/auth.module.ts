@@ -17,9 +17,9 @@ import { PermissionsGuard } from './guards/permissions.guard';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'qflow-dev-secret',
+        secret: configService.get<string>('auth.jwtSecret'),
         signOptions: {
-          expiresIn: 604800, // 7 days in seconds
+          expiresIn: configService.get<string>('auth.jwtExpiresIn') as any,
         },
       }),
       inject: [ConfigService],

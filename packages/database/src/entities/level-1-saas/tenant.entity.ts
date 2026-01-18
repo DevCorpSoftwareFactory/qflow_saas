@@ -190,4 +190,33 @@ export class Tenant extends BaseEntity {
     @IsOptional()
     @IsString()
     primaryContactPhone?: string;
+
+    /** Tax configuration (VAT rates, regime) */
+    @Column({ name: 'tax_information', type: 'jsonb', nullable: true })
+    @IsOptional()
+    taxInformation?: {
+        taxRegime?: string;
+        configuredRates?: { name: string; rate: number }[];
+        pricesIncludeTax?: boolean;
+    };
+
+    /** Document numbering settings */
+    @Column({ name: 'document_settings', type: 'jsonb', nullable: true })
+    @IsOptional()
+    documentSettings?: {
+        invoice?: { prefix: string; currentNumber: number; resolutionText?: string; resolutionDate?: string };
+        posTicket?: { prefix: string; currentNumber: number };
+        creditNote?: { prefix: string; currentNumber: number };
+        debitNote?: { prefix: string; currentNumber: number };
+    };
+
+    /** Security settings */
+    @Column({ name: 'security_settings', type: 'jsonb', nullable: true })
+    @IsOptional()
+    securitySettings?: {
+        sessionTimeoutMinutes?: number;
+        minPasswordLength?: number;
+        passwordExpiryDays?: number;
+        maxLoginAttempts?: number;
+    };
 }

@@ -8,6 +8,7 @@ import {
   IsArray,
   IsNotEmpty,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class RegisterDto {
   @IsEmail()
@@ -24,6 +25,7 @@ export class RegisterDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
+  @Transform(({ value }) => value?.replace(/<\/?[^>]+(>|$)/g, ''))
   fullName: string;
 
   @IsOptional()

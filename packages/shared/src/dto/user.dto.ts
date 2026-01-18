@@ -75,18 +75,13 @@ export interface UserResponseDto {
     twoFactorEnabled: boolean;
     lastLoginAt?: string;
     avatarUrl?: string;
+    language?: string;
+    timezone?: string;
     createdAt: string;
     updatedAt: string;
 }
 
-/**
- * Change password request DTO
- */
-export interface ChangePasswordDto {
-    currentPassword: string;
-    newPassword: string;
-    confirmPassword: string;
-}
+
 
 /**
  * Reset password request DTO
@@ -127,13 +122,4 @@ export interface Verify2FADto {
     code: string;
 }
 
-/**
- * User profile update DTO
- */
-export interface UpdateProfileDto {
-    fullName?: string;
-    phone?: string;
-    avatarUrl?: string;
-    language?: string;
-    timezone?: string;
-}
+

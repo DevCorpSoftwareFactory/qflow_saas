@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Loader2 } from "lucide-react"
+import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -18,35 +19,30 @@ import {
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/hooks/use-auth"
-import { cn } from "@/lib/utils"
 
-const formSchema = z.object({
-    email: z.string().email({ message: "Invalid email address." }),
-    password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+const loginSchema = z.object({
+    email: z.string().email("Por favor ingresa un correo válido"),
+    password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
 })
 
-export default function LoginPage() {
-    const { login } = useAuth()
-    const [error, setError] = React.useState<string | null>(null)
-    const [isLoading, setIsLoading] = React.useState(false)
+type LoginFormValues = z.infer<typeof loginSchema>
 
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
+export default function LoginPage() {
+    const { login, isLoading, error } = useAuth()
+
+    const form = useForm<LoginFormValues>({
+        resolver: zodResolver(loginSchema),
         defaultValues: {
             email: "",
             password: "",
         },
     })
 
-    async function onSubmit(values: z.infer<typeof formSchema>) {
-        setIsLoading(true)
-        setError(null)
+    async function onSubmit(values: LoginFormValues) {
         try {
             await login(values.email, values.password)
-        } catch (err) {
-            setError("Invalid credentials. Please try again.")
-        } finally {
-            setIsLoading(false)
+        } catch {
+            // Error is handled by useAuth hook
         }
     }
 
@@ -54,9 +50,9 @@ export default function LoginPage() {
         <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
             <Card className="w-full max-w-md shadow-lg border-0 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:bg-zinc-900/95">
                 <CardHeader className="space-y-1">
-                    <CardTitle className="text-2xl font-bold tracking-tight text-center">QFlow Pro</CardTitle>
+                    <CardTitle className="text-2xl font-bold tracking-tight text-center">Bienvenido a QFlow Pro</CardTitle>
                     <CardDescription className="text-center">
-                        Enter your credentials to access the admin panel
+                        Ingresa tus credenciales para acceder al panel de administración
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -67,9 +63,9 @@ export default function LoginPage() {
                                 name="email"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Email</FormLabel>
+                                        <FormLabel>Correo Electrónico</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="admin@example.com" {...field} />
+                                            <Input placeholder="tu@empresa.com" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -80,7 +76,15 @@ export default function LoginPage() {
                                 name="password"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Password</FormLabel>
+                                        <div className="flex items-center justify-between">
+                                            <FormLabel>Contraseña</FormLabel>
+                                            <Link
+                                                href="/auth/forgot-password"
+                                                className="text-sm font-medium text-muted-foreground hover:underline"
+                                            >
+                                                ¿Olvidaste tu contraseña?
+                                            </Link>
+                                        </div>
                                         <FormControl>
                                             <Input type="password" placeholder="••••••" {...field} />
                                         </FormControl>
@@ -95,13 +99,18 @@ export default function LoginPage() {
                             )}
                             <Button className="w-full" type="submit" disabled={isLoading}>
                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Sign In
+                                Iniciar Sesión
                             </Button>
                         </form>
                     </Form>
                 </CardContent>
-                <CardFooter className="flex justify-center">
-                    <p className="text-xs text-muted-foreground">Protected by QFlow Security</p>
+                <CardFooter className="flex flex-col space-y-4">
+                    <div className="text-sm text-muted-foreground text-center">
+                        Don&apos;t have an account?{" "}
+                        <Link href="/auth/register" className="text-primary underline-offset-4 hover:underline">
+                            Sign up
+                        </Link>
+                    </div>
                 </CardFooter>
             </Card>
         </div>

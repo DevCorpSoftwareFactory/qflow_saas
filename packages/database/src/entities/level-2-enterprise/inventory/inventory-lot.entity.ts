@@ -138,6 +138,9 @@ export class InventoryLot {
     @DeleteDateColumn({ name: 'deleted_at', type: 'timestamptz', nullable: true })
     deletedAt?: Date;
 
+    @Column({ name: 'updated_at', type: 'timestamptz', nullable: false, default: () => 'NOW()' })
+    updatedAt: Date;
+
     @OneToMany(() => InventoryMovement, (movement) => movement.lot)
     movements: InventoryMovement[];
 }
